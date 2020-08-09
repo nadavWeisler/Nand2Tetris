@@ -1,0 +1,30 @@
+weisler
+===============================================================================
+Nadav Weisler ID 316493758, nadav.weisler1@mail.huji.ac.il
+===============================================================================
+
+                           Project 1 - Boolean Logic
+                           ----------------------- 
+  
+
+Submitted Files
+---------------
+README - This file.
+And.hdl - And gate HDL file.
+And16.hdl - And16 gate HDL file.
+DMux.hdl - DMux gate HDL file.
+DMux4Way.hdl - DMux4Way gate HDL file.
+DMux8Way.hdl - DMux8Way gate HDL file.
+Mux.hdl - Mux gate HDL file.
+Mux4Way16.hdl - Mux4Way16 gate HDL file.
+Mux8Way16.hdl - Mux8Way16 gate HDL file.
+Mux16.hdl - Mux16 gate HDL file.
+Not.hdl - Not gate HDL file.
+Not16.hdl - Not16 gate HDL file.
+Or.hdl - Or gate HDL file.
+Or8Way.hdl - Or8Way gate HDL file.
+Or16.hdl - Or16 gate HDL file.
+Xor.hdl - Xor gate HDL file.
+
+Remarks
+-------
