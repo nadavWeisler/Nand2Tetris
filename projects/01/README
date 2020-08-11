@@ -10,21 +10,18 @@ Nadav Weisler ID 316493758, nadav.weisler1@mail.huji.ac.il
 Submitted Files
 ---------------
 README - This file.
-And.hdl - And gate HDL file.
-And16.hdl - And16 gate HDL file.
-DMux.hdl - DMux gate HDL file.
-DMux4Way.hdl - DMux4Way gate HDL file.
-DMux8Way.hdl - DMux8Way gate HDL file.
-Mux.hdl - Mux gate HDL file.
-Mux4Way16.hdl - Mux4Way16 gate HDL file.
-Mux8Way16.hdl - Mux8Way16 gate HDL file.
+And.hdl - And gate.
+And16.hdl - 16-bit And.
+DMux.hdl - DMux gate.
+DMux4Way.hdl - 4-way demultiplexor.
+DMux8Way.hdl - 8-way demultiplexor.
+Mux.hdl - Mux gate.
+Mux4Way16.hdl - 16-bit/4-way mux.
+Mux8Way16.hdl - 16-bit/8-way mux.
 Mux16.hdl - Mux16 gate HDL file.
-Not.hdl - Not gate HDL file.
-Not16.hdl - Not16 gate HDL file.
-Or.hdl - Or gate HDL file.
-Or8Way.hdl - Or8Way gate HDL file.
-Or16.hdl - Or16 gate HDL file.
-Xor.hdl - Xor gate HDL file.
-
-Remarks
--------
+Not.hdl - Not gate.
+Not16.hdl - 16-bit Not.
+Or.hdl - Or gate.
+Or8Way.hdl - Or(in0,in1,...,in7).
+Or16.hdl - 16-bit Or.
+Xor.hdl - Xor gate.

@@ -1,0 +1,18 @@
+weisler
+===============================================================================
+Nadav Weisler ID 316493758, nadav.weisler1@mail.huji.ac.il
+===============================================================================
+
+                           Project 2 - Boolean Arithmetic
+                           ----------------------- 
+  
+
+Submitted Files
+---------------
+README - This file.
+HalfAdder.hdl - Half Adder.
+FullAdder.hdl - Full Adder.
+Add16.hdl - 16-bit Adder.
+Inc16.hdl - 16-bit incrementer.
+ALU.hdl - Arithmetic Logic Unit.
+
