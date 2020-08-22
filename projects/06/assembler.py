@@ -1,15 +1,24 @@
 import os
+import re
 import sys
 
 BIT_SIZE = 16
 HACK_SUFFIX = ".hack"
 ASM_SUFFIX = ".asm"
 NEW_LINE = '\n'
-TAB_SPACE = '\r'
+END_LINE = '\r'
+TAB = '\t'
 JMP_0 = "000"
 CMP_0 = "0000000"
 COMMENT = "//"
-SYMBOLS = {
+SPACE = " "
+AT_SIGN = "@"
+OPEN_PARENTHESES = "("
+UNTIL_BREAK = ".*?[\n\r \t/]"
+C_PREFIX = "111"
+EQUALITY = ".*?="
+
+symbols_table = {
     "R0": 0,
     "R1": 1,
     "R2": 2,
@@ -35,7 +44,7 @@ SYMBOLS = {
     "THAT": 4
 }
 
-JMP = {
+jmp_values = {
     "JDT": "001",
     "JEQ": "010",
     "JGE": "011",
@@ -45,7 +54,7 @@ JMP = {
     "JMP": "111"
 }
 
-CMP = {
+cmp_values = {
     "0": "0101010",
     "1": "0111111",
     "-1": "0111010",
@@ -77,33 +86,144 @@ CMP = {
 }
 
 
-def if_pass(line):
-    if(line.startswith(NEW_LINE) or line.startswith(COMMENT) or line.startswith(TAB_SPACE)):
+def to_pass(line):
+    if line.startswith(NEW_LINE) or line.startswith(COMMENT) or line.startswith(END_LINE):
         return True
     return False
 
 
-def add_symboles(old_file, new_file):
+def load_symbols(old_file):
     count = 0
     for line in old_file:
-        if if_pass(line):
+        if line.startswith(NEW_LINE) or line.startswith(COMMENT) or \
+                line.startswith('\r'):
             pass
         else:
+            if line.startswith('('):
+                regex_output = re.search("(.*)", line)
+                if regex_output:
+                    symbols_table[regex_output.group(0)[1:-1]] = count
+            else:
+                count += 1
+
+
+def load_variables(old_file):
+    count = 16
+    old_file.seek(0)
+    for line in old_file:
+        if line.startswith(NEW_LINE):
+            if to_pass(line):
+                pass
+            if line.startswith(AT_SIGN) or line.startswith((SPACE * 3) + AT_SIGN):
+                if line.startswith(AT_SIGN):
+                    string = line[1:]
+                else:
+                    string = line[4:]
+
+                if len(string) > 0 and not string[0].isdigit():
+                    regex_output = re.search(".*?[ \n\r/]", string)
+                    if regex_output:
+                        table_index = regex_output.group(0)[:-1]
+                        if table_index not in symbols_table:
+                            symbols_table[table_index] = count
+                            count += 1
+
+
+def parse_line_a(line, new_file):
+    regex_output = re.search(UNTIL_BREAK, line)
+    if regex_output:
+        line = regex_output.group(0)
+        line = line[:-1]
+
+    if line in symbols_table:
+        binary_number = "{0:b}".format(symbols_table[line])
+    else:
+        binary_number = "{0:b}".format(int(line))
+
+    formatted_binary_number = "0"
+    formatted_binary_number *= BIT_SIZE - len(binary_number)
+    formatted_binary_number += binary_number
+    formatted_binary_number += NEW_LINE
+    new_file.write(formatted_binary_number)
+
+
+def set_binary_code_dest(value, dest):
+    dest_string = value[:-1]
+    for symbol in dest_string:
+        if symbol == 'A':
+            dest[0] = '1'
+        if symbol == 'D':
+            dest[1] = '1'
+        if symbol == 'M':
+            dest[2] = '1'
+    return dest
+
+
+def set_binary_code_cmp(value):
+    if value[0] == '=':
+        value = value[1:-1]
+    else:
+        value = value[:-1]
+
+    if value in cmp_values:
+        return cmp_values[value]
+    else:
+        return CMP_0
+
+
+def set_binary_code_jmp(value):
+    value = value[1:-1]
+    if value in jmp_values:
+        return jmp_values[str]
+    else:
+        return JMP_0
+
+
+def parse_line_c(line, new_file):
+    formatted_binary_number = C_PREFIX
+    dest = ['0'] * 3
+    regex_output = re.search(EQUALITY, line)
+    if regex_output:
+        dest = set_binary_code_dest(regex_output.group(0), dest)
+
+    cmp = ['0'] * 7
+    regex_output = re.search("=.*?[; \n\r/]", line)
+    if regex_output:
+        cmp = set_binary_code_cmp(regex_output.group(0))
+    else:
+        regex_output = re.search(".*?[; \n\r/]", line)
+        if regex_output:
+            cmp = set_binary_code_cmp(regex_output.group(0))
+
+    jmp = JMP_0
+    regex_output = re.search(";.*?[ \n\r/]", line)
+    if regex_output:
+        jmp = set_binary_code_jmp(regex_output.group(0))
+    formatted_binary_number = formatted_binary_number + cmp + ''.join(dest) + jmp + '\n'
+    new_file.write(formatted_binary_number + '\n')
+
+
+def create_file(old_file, new_file):
+    old_file.seek(0)
+    for line in old_file:
+        if to_pass(line):
             pass
-    pass
+        else:
+            clean_line = line
+            if line.startswith(TAB):
+                clean_line = line[1:]
+            elif line.startswith(SPACE * 3):
+                clean_line = line[3:]
+
+            if clean_line.startswith(AT_SIGN):
+                parse_line_a(clean_line[1:], new_file)
+            elif not clean_line.startswith(OPEN_PARENTHESES):
+                parse_line_c(clean_line, new_file)
 
 
-def add_varriables(old_file, new_file):
-    pass
-
-
-def create_file():
-    pass
-
-
-def run_file(file_path):
-    with open(file_path) as read_file:
-        filename = os.path.splitext(file_path)[0]
+def run_file(filename):
+    with open(filename) as read_file:
+        filename = os.path.splitext(filename)[0]
         with open(filename + HACK_SUFFIX, 'w') as write_file:
             pass
 
