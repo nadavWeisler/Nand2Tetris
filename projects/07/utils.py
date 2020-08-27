@@ -1,8 +1,11 @@
 ASSEMBLY_SUFFIX = ".asm"
+VM_SUFFIX = ".vm"
+
 
 NEW_LINE = "\n"
 COMMENT = "//"
 END_LINE = "\r"
+
 
 
 class Commands:
