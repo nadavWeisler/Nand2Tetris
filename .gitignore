@@ -2,3 +2,4 @@
 example_files
 *.tar
 books
+__pycache__

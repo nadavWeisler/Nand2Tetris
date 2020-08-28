@@ -1,82 +1,61 @@
-import utils
+from utils import *
+from lexer import *
 
 
-class Parser:
-    def __init__(self, file_name):
-        self.file = open(file_name, 'r')
-        self.current_line = ""
-        self.end_of_file = False
-        self._argument1 = ""
-        self._argument2 = ""
-        self._command = ""
-        self.read_line()
+class Parser(object):
+    """
+    Parser class
+    """
 
-    def get_argument1(self):
-        return self._argument1
+    def __init__(self, file):
+        self.lexer = Lexer(file)
+        self._init_command()
 
-    def get_argument2(self):
-        return self._argument2
+    def _init_command(self):
+        self._command_type = C_ERROR
+        self._argument_1 = ''
+        self._argument_2 = 0
 
-    def get_command(self):
-        return self._command
+    def has_more_commands(self):
+        return self.lexer.has_more()
 
-    def _to_pass(self):
-        """
-        If we need to pass
-        """
-        return self.current_line.startswith(utils.COMMENT) or \
-               self.current_line.startswith(utils.END_LINE) or \
-               self.current_line.startswith(utils.NEW_LINE)
+    def advance(self):
+        self._init_command()
+        self.lexer.next()
+        token, val = self.lexer.current_token
 
-    def read_line(self):
-        """
-        Read line
-        """
-        self.current_line = self.file.readline()
-        if self.current_line == "":
-            self.end_of_file = True
-            self.file.close()
-        elif self._to_pass():
-            self.read_line()
-        else:
-            self._set_command()
-            args = self.current_line.split(' ')
-            if self._command == utils.Commands.Arithmetic:
-                self._argument1 = args[0]
-            else:
-                if len(args) > 1:
-                    self._argument1 = args[1]
-                if len(args) > 2:
-                    self._argument2 = args[2]
+        if token != ID:
+            pass
+        if val in NULLARY_COMMANDS:
+            self._nullary_command(val)
+        elif val in UNARY_COMMANDS:
+            self._unary_command(val)
+        elif val in BINARY_COMMANDS:
+            self._binary_command(val)
 
-    def _set_command(self):
-        """
-        Set command name
-        """
-        if self.current_line.startswith(utils.Commands.Push):
-            self._command = utils.Commands.Push
-        elif self.current_line.startswith(utils.Commands.If):
-            self._command = utils.Commands.If
-        elif self.current_line.startswith(utils.Commands.Pop):
-            self._command = utils.Commands.Pop
-        elif self.current_line.startswith(utils.Commands.Label):
-            self._command = utils.Commands.Label
-        elif self.current_line.startswith(utils.Commands.Call):
-            self._command = utils.Commands.Call
-        elif self.current_line.startswith(utils.Commands.Return):
-            self._command = utils.Commands.Return
-        elif self.current_line.startswith(utils.Commands.Goto):
-            self._command = utils.Commands.Goto
-        elif self.current_line.startswith(utils.Commands.Function):
-            self._command = utils.Commands.Function
-        else:
-            if self.current_line.startswith(utils.Arithmetics.Lt) or \
-                    self.current_line.startswith(utils.Arithmetics.Gt) or \
-                    self.current_line.startswith(utils.Arithmetics.Not) or \
-                    self.current_line.startswith(utils.Arithmetics.Or) or \
-                    self.current_line.startswith(utils.Arithmetics.Add) or \
-                    self.current_line.startswith(utils.Arithmetics.Neg) or \
-                    self.current_line.startswith(utils.Arithmetics.Sub) or \
-                    self.current_line.startswith(utils.Arithmetics.Eq) or \
-                    self.current_line.startswith(utils.Arithmetics.And):
-                self._command = utils.Commands.Arithmetic
+    def command_type(self):
+        return self._command_type
+
+    def argument_1(self):
+        return self._argument_1
+
+    def argument_2(self):
+        return self._argument_2
+
+    def _set_command_type(self, command_id):
+        self._command_type = COMMANDS[command_id]
+
+    def _nullary_command(self, command_id):
+        self._set_command_type(command_id)
+        if COMMANDS[command_id] == C_ARITHMETIC:
+            self._argument_1 = command_id
+
+    def _unary_command(self, command_id):
+        self._nullary_command(command_id)
+        self.token, val = self.lexer.next_token()
+        self._argument_1 = val
+
+    def _binary_command(self, command_id):
+        self._unary_command(command_id)
+        self.token, val = self.lexer.next_token()
+        self._argument_2 = int(val)

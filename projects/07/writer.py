@@ -1,560 +1,351 @@
-from os import path
-import utils
-
-RET = "15"
-FRAME = "14"
-SP = '0'
-
-ARITHMETICS = {
-    "add", "neg", "sub",
-    "or", "not", "and",
-    "gt", "lt", "eq"
-}
-
-# Symbols to meanings
-SYMBOLS_TABLE = {
-    "SP": 0,
-    "LCL": 1,
-    "ARG": 2,
-    "THIS": 3,
-    "THAT": 4,
-    "temp": 5,
-    "stack": 256,
-}
-
-# Keyword to address
-TRANSITION_TO_ADDRESS = {
-    "local": 1,
-    "argument": 2,
-    "this": 3,
-    "that": 4,
-}
+import os
+from utils import *
 
 
-def create_function_return(function_name):
+def _get_register(register_num):
+    return 'R' + str(register_num)
+
+
+def _get_memory_segment(segment):
+    asm_label = {
+        S_LCL: 'LCL',
+        S_ARG: 'ARG',
+        S_THIS: 'THIS',
+        S_THAT: 'THAT'
+    }
+    return asm_label[segment]
+
+
+def _register_base(segment):
+    reg_base = {
+        'reg': R_R0,
+        'pointer': R_PTR,
+        'temp': R_TEMP
+    }
+    return reg_base[segment]
+
+
+def _register_num(segment, index):
+    return _register_base(segment) + index
+
+
+def _is_const_segment(segment):
+    return segment == S_CONST
+
+
+def _is_static_segment(segment):
+    return segment == S_STATIC
+
+
+def _is_register_segment(segment):
+    return segment in [S_REG, S_PTR, S_TEMP]
+
+
+def _is_memory_segment(segment):
+    return segment in [S_LCL, S_ARG, S_THIS, S_THAT]
+
+
+def _a_command(write_file, address):
+    write_file.write('@' + address + NEW_LINE)
+
+
+def _c_command(write_file, destination, comp, jump=None):
+    if destination is not None:
+        write_file.write(destination + '=')
+    write_file.write(comp)
+    if jump is not None:
+        write_file.write(';' + jump)
+    write_file.write(NEW_LINE)
+
+
+def _l_command(write_file, label):
+    write_file.write('(' + label + ')' + NEW_LINE)
+
+
+def _register_to_destination(write_file, destination, reg):
+    _a_command(write_file, _get_register(reg))
+    _c_command(write_file, destination, 'M')
+
+
+def _compare_to_register(write_file, reg, comp):
+    _a_command(write_file, _get_register(reg))
+    _c_command(write_file, 'M', comp)
+
+
+def _in_folder(write_file, destination='A'):
+    _c_command(write_file, destination, 'M')
+
+
+def _register_to_register(write_file, destination, src):
+    _register_to_destination(write_file, 'D', src)
+    _compare_to_register(write_file, destination, 'D')
+
+
+def _load_segment_index(write_file, seg, index, in_folder):
+    comp = 'D+A'
+    if index < 0:
+        index = -index
+        comp = 'A-D'
+    _a_command(write_file, str(index))
+    _c_command(write_file, 'D', 'A')
+    _a_command(write_file, seg)
+    if in_folder:
+        _in_folder(write_file)
+    _c_command(write_file, 'AD', comp)
+
+
+def _load_segment_without_index(write_file, segment, in_folder):
+    _a_command(write_file, segment)
+    if in_folder:
+        _in_folder(write_file, destination='AD')
+
+
+def _load_segment(write_file, segment, index, in_folder=True):
+    if index == 0:
+        _load_segment_without_index(write_file, segment, in_folder)
+    else:
+        _load_segment_index(write_file, segment, index, in_folder)
+
+
+def _load_sp_offset(write_file, offset):
+    _load_segment(write_file, _get_register(R_SP), offset)
+
+
+def _load_sp(write_file):
+    _a_command(write_file, 'SP')
+    _c_command(write_file, 'A', 'M')
+
+
+def _dec_sp(write_file):
+    _a_command(write_file, 'SP')
+    _c_command(write_file, 'M', 'M-1')
+
+
+def _inc_sp(write_file):
+    _a_command(write_file, 'SP')
+    _c_command(write_file, 'M', 'M+1')
+
+
+def _prev_frame_to_register(write_file, register):
+    _register_to_destination(write_file, 'D', R_FRAME)
+    _c_command(write_file, 'D', 'D-1')
+    _compare_to_register(write_file, R_FRAME, 'D')
+    _c_command(write_file, 'A', 'D')
+    _c_command(write_file, 'D', 'M')
+    _compare_to_register(write_file, register, 'D')
+
+
+def write_label(write_file, label):
+    _l_command(write_file, label)
+
+
+def write_goto(write_file, label):
+    _a_command(write_file, label)
+    _c_command(write_file, None, '0', 'JMP')
+
+
+def _comp_to_stack(write_file, comp):
+    _load_sp(write_file)
+    _c_command(write_file, 'M', comp)
+
+
+def _mem_to_stack(write_file, segment, index, in_folder=True):
+    _load_segment(write_file, segment, index, in_folder)
+    _c_command(write_file, 'D', 'M')
+    _comp_to_stack(write_file, 'D')
+
+
+def _reg_to_stack(write_file, segment, index):
+    _register_to_destination(write_file, 'D', _register_num(segment, index))
+    _comp_to_stack(write_file, 'D')
+
+
+def _stack_to_destination(write_file, destination):
+    _load_sp(write_file)
+    _c_command(write_file, destination, 'M')
+
+
+def _pop_to_destination(write_file, destination):
+    _dec_sp(write_file)
+    _stack_to_destination(write_file, destination)
+
+
+def _unary_command(write_file, comp):
+    _dec_sp(write_file)
+    _stack_to_destination(write_file, 'D')
+    _c_command(write_file, 'D', comp)
+    _comp_to_stack(write_file, 'D')
+    _inc_sp(write_file)
+
+
+def _binary_command(write_file, comp):
+    _dec_sp(write_file)
+    _stack_to_destination(write_file, 'D')
+    _dec_sp(write_file)
+    _stack_to_destination(write_file, 'A')
+    _c_command(write_file, 'D', comp)
+    _comp_to_stack(write_file, 'D')
+    _inc_sp(write_file)
+
+
+def _val_to_stack(write_file, val):
+    _a_command(write_file, val)
+    _c_command(write_file, 'D', 'A')
+    _comp_to_stack(write_file, 'D')
+
+
+def _stack_to_register(write_file, segment, index):
+    _stack_to_destination(write_file, 'D')
+    _compare_to_register(write_file, _register_num(segment, index), 'D')
+
+
+def _stack_to_memory(write_file, segment, index, in_folder=True):
+    _load_segment(write_file, segment, index, in_folder)
+    _compare_to_register(write_file, R_COPY, 'D')
+    _stack_to_destination(write_file, 'D')
+    _register_to_destination(write_file, 'A', R_COPY)
+    _c_command(write_file, 'M', 'D')
+
+
+def write_if(write_file, label):
+    _pop_to_destination(write_file, 'D')
+    _a_command(write_file, label)
+    _c_command(write_file, None, 'D', 'JNE')
+
+
+class CodeWriter(object):
     """
-    create the name of asm function
+    Code writer class
     """
-    Writer.function_global_counter += 1
-    return function_name + '$ret.' + str(Writer.function_global_counter)
 
+    def __init__(self, write_file):
+        self.write_file = write_file
+        self._vm_file = ''
+        self._label_count = 0
 
-class Writer:
-    function_global_counter = 0
-    lg_gt_counter = 0
+    def set_file_name(self, filename):
+        self._vm_file, extension = os.path.splitext(filename)
 
-    def __init__(self, parser, output_file, bootstrap=False):
-        """
-        constructor
-        """
-        self.out_file = output_file
-        self.parser = parser
-        self.file_name = path.splitext(self.parser.file.name)[0]
-        self.current_function = ""
-        if bootstrap:
-            self._write_line_to_file("@256")
-            self._write_line_to_file("D=A")
-            self._write_line_to_file("@0")
-            self._write_line_to_file("M=D")
-            self._create_call("BOOTSTRAP_RETURN_ADDRESS", "Sys.init", '0')
+    def write_init(self):
+        _a_command(self.write_file, '256')
+        _c_command(self.write_file, 'D', 'A')
+        _compare_to_register(self.write_file, R_SP, 'D')
+        self.write_call('Sys.init', 0)
 
-    def write_all(self):
-        while not self.parser.end_of_file:
-            if self.parser.get_command() == utils.Commands.Arithmetic:
-                self._write_arithmetic()
-            elif self.parser.get_command() == utils.Commands.Push or \
-                    self.parser.get_command() == utils.Commands.Pop:
-                self._write_push_pop(self.parser.get_command(),
-                                     self.parser.get_argument1(),
-                                     self.parser.get_argument2())
-            elif self.parser.get_command() == utils.Commands.Label:
-                self._write_label()
-            elif self.parser.get_command() == utils.Commands.Goto:
-                self._write_goto()
-            elif self.parser.get_command() == utils.Commands.If:
-                self._write_if()
-            elif self.parser.get_command() == utils.Commands.Function:
-                self._write_function()
-            elif self.parser.get_command() == utils.Commands.Call:
-                self._write_line_to_file("// CALL")
-                self._create_call(self.current_function,
-                                  self.parser.get_argument1(),
-                                  self.parser.get_argument2())
-            elif self.parser.get_command() == utils.Commands.Return:
-                self._write_return()
-            self.parser.read_line()
+    def write_arithmetic(self, command):
+        if command == 'add':
+            _binary_command(self.write_file, 'D+A')
+        elif command == 'sub':
+            _binary_command(self.write_file, 'A-D')
+        elif command == 'neg':
+            _unary_command(self.write_file, '-D')
+        elif command == 'eq':
+            self._compare_command(self.write_file, 'JEQ')
+        elif command == 'gt':
+            self._compare_command(self.write_file, 'JGT')
+        elif command == 'lt':
+            self._compare_command(self.write_file, 'JLT')
+        elif command == 'and':
+            _binary_command(self.write_file, 'D&A')
+        elif command == 'or':
+            _binary_command(self.write_file, 'D|A')
+        elif command == 'not':
+            _unary_command(self.write_file, '!D')
 
-    def _write_return(self):
-        """write return asm code"""
-        self._write_line_to_file("// FRAME=LCL")
+    def write_push_pop(self, command, segment, index):
+        if command == C_PUSH:
+            self._push_command(self.write_file, segment, index)
+        elif command == C_POP:
+            self._pop_command(self.write_file, segment, index)
 
-        # FRAME=LCL
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["LCL"]))
-        self._write_line_to_file("D=M")
-        self._write_line_to_file('@' + FRAME)
-        self._write_line_to_file("M=D")
+    def write_call(self, function_name, num_args):
+        return_address = self._new_label()
+        self._push_command(self.write_file, S_CONST, return_address)
+        self._push_command(self.write_file, S_REG, R_LCL)
+        self._push_command(self.write_file, S_REG, R_ARG)
+        self._push_command(self.write_file, S_REG, R_THIS)
+        self._push_command(self.write_file, S_REG, R_THAT)
+        _load_sp_offset(self.write_file, -num_args - 5)
+        _compare_to_register(self.write_file, R_ARG, 'D')
+        _register_to_register(self.write_file, R_LCL, R_SP)
+        _a_command(self.write_file, function_name)
+        _c_command(self.write_file, None, '0', 'JMP')
+        _l_command(self.write_file, return_address)
 
-        # RET=*(FRAME-5)
-        self._write_line_to_file("// RET=*(FRAME-5))")
-        self._write_line_to_file("@5")
-        self._write_line_to_file("A=D-A")
-        self._write_line_to_file("D=M")
-        self._write_line_to_file('@' + RET)
-        self._write_line_to_file("M=D")
+    def write_return(self):
+        _register_to_register(self.write_file, R_FRAME, R_LCL)
+        _a_command(self.write_file, '5')
+        _c_command(self.write_file, 'A', 'D-A')
+        _c_command(self.write_file, 'D', 'M')
+        _compare_to_register(self.write_file, R_RET, 'D')
+        self._pop_command(self.write_file, S_ARG, 0)
+        _register_to_destination(self.write_file, 'D', R_ARG)
+        _compare_to_register(self.write_file, R_SP, 'D+1')
+        _prev_frame_to_register(self.write_file, R_THAT)
+        _prev_frame_to_register(self.write_file, R_THIS)
+        _prev_frame_to_register(self.write_file, R_ARG)
+        _prev_frame_to_register(self.write_file, R_LCL)
+        _register_to_destination(self.write_file, 'A', R_RET)
+        _c_command(self.write_file, None, '0', 'JMP')
 
-        # *ARG=pop()
-        self._write_line_to_file("// *ARG=pop()")
-        self._decrease_SP_and_read_to_d()
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["ARG"]))
-        self._write_line_to_file("A=M")
-        self._write_line_to_file("M=D")
+    def write_function(self, function_name, num_locals):
+        _l_command(self.write_file, function_name)
+        for i in range(num_locals):
+            self._push_command(self.write_file, S_CONST, 0)
 
-        # SP=ARG+1
-        self._write_line_to_file("// SP=ARG+1")
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["ARG"]))
-        self._write_line_to_file("D=M")
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["SP"]))
-        self._write_line_to_file("M=D+1")
+    def _push_command(self, write_file, segment, index):
+        if _is_const_segment(segment):
+            _val_to_stack(write_file, str(index))
+        elif _is_memory_segment(segment):
+            _mem_to_stack(write_file, _get_memory_segment(segment), index)
+        elif _is_register_segment(segment):
+            _reg_to_stack(write_file, segment, index)
+        elif _is_static_segment(segment):
+            self._static_to_stack(write_file, segment)
+        _inc_sp(write_file)
 
-        # THAT=*(FRAME-1)
-        self._write_line_to_file("// THAT=*(FRAME-1)")
-        self._decrease_frame_by_one_and_load_into_d()
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["THAT"]))
-        self._write_line_to_file("M=D")
+    def _pop_command(self, write_file, segment, index):
+        _dec_sp(write_file)
+        if _is_memory_segment(segment):
+            _stack_to_memory(write_file, _get_memory_segment(segment), index)
+        elif _is_register_segment(segment):
+            _stack_to_register(write_file, segment, index)
+        elif _is_static_segment(segment):
+            self._stack_to_static(write_file, index)
 
-        # THIS=*(FRAME-2)
-        self._write_line_to_file("// THIS=*(FRAME-2)")
-        self._decrease_frame_by_one_and_load_into_d()
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["THIS"]))
-        self._write_line_to_file("M=D")
+    def _compare_command(self, write_file, jump):
+        _dec_sp(write_file)
+        _stack_to_destination(write_file, 'D')
+        _dec_sp(write_file)
+        _stack_to_destination(write_file, 'A')
+        _c_command(write_file, 'D', 'A-D')
+        label_eq = self._jump(write_file, 'D', jump)
+        _comp_to_stack(write_file, '0')
+        label_ne = self._jump(write_file, '0', 'JMP')
+        _l_command(write_file, label_eq)
+        _comp_to_stack(write_file, '-1')
+        _l_command(write_file, label_ne)
+        _inc_sp(write_file)
 
-        # ARG=*(FRAME-3)
-        self._write_line_to_file("// ARG=*(FRAME-3)")
-        self._decrease_frame_by_one_and_load_into_d()
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["ARG"]))
-        self._write_line_to_file("M=D")
+    def _static_to_stack(self, write_file, index):
+        _a_command(write_file, self._get_static_name(index))
+        _c_command(write_file, 'D', 'M')
+        _comp_to_stack(write_file, 'D')
 
-        # LCL=*(FRAME-4)
-        self._write_line_to_file("// LCL=*(FRAME-4)")
-        self._decrease_frame_by_one_and_load_into_d()
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["LCL"]))
-        self._write_line_to_file("M=D")
+    def _stack_to_static(self, write_file, index):
+        _stack_to_destination(write_file, 'D')
+        _a_command(write_file, self._get_static_name(index))
+        _c_command(write_file, 'M', 'D')
 
-        # GOTO RET
-        self._write_line_to_file("// GOTO RET")
-        self._write_line_to_file('@' + RET)
-        self._write_line_to_file("A=M")
-        self._write_line_to_file("0;JMP")
+    def _get_static_name(self, index):
+        return self._vm_file + '.' + str(index)
 
-    def _write_function(self):
-        """
-        write asm code - function
-        """
-        self._write_line_to_file("// FUNCTION")
-        self.current_function = self.parser.get_argument1()
-        self._write_line_to_file('(' + self.current_function + ')')
-        for x in range(int(self.parser.get_argument2())):
-            self._write_line_to_file("@0")
-            self._write_line_to_file("D=A")
-            self._load_value_from_d()
-            self._stack_pointer_inc()
+    def _jump(self, write_file, comp, jump):
+        label = self._new_label()
+        _a_command(write_file, label)
+        _c_command(write_file, None, comp, jump)
+        return label
 
-    def _write_if(self):
-        """
-        write asm code - IF-GOTO
-        """
-        self._write_line_to_file("// IF")
-        self._decrease_SP_and_read_to_d()
-        label = self._create_label()
-        self._write_line_to_file('@' + label)
-        self._write_line_to_file("D;JNE")
-
-    def _write_goto(self):
-        """
-        write asm code - GOTO
-        """
-        self._write_line_to_file("// GOTO")
-        self._write_line_to_file('@' + self._create_label())
-        self._write_line_to_file("0;JMP")
-
-    def _create_call(self, curr_function, function_to_jump, args_num):
-        """
-        write asm code - CALL
-        """
-        ret_label = create_function_return(curr_function)
-        self._write_line_to_file("// Push ret address")
-        self._add_value_to_stack(ret_label)
-        self._write_line_to_file("// Push LCL")
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["LCL"]))
-        self._stack_adding()
-        self._write_line_to_file("// Push ARG")
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["ARG"]))
-        self._stack_adding()
-        self._write_line_to_file("// Push THIS")
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["THIS"]))
-        self._stack_adding()
-        self._write_line_to_file("// Push THAT")
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["THAT"]))
-        self._stack_adding()
-        self._write_line_to_file("// ARG = SP  -5 -nARGS")
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["SP"]))
-        self._write_line_to_file("D=M")
-        self._write_line_to_file("@5")
-        self._write_line_to_file("D=D-A")
-        self._write_line_to_file("@" + args_num)
-        self._write_line_to_file("D=D-A")
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["ARG"]))
-        self._write_line_to_file("M=D")
-        self._write_line_to_file("// LCL = SP")
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["SP"]))
-        self._write_line_to_file("D=M")
-        self._write_line_to_file('@' + str(SYMBOLS_TABLE["LCL"]))
-        self._write_line_to_file("M=D")
-        self._write_line_to_file('@' + function_to_jump)
-        self._write_line_to_file("0;JMP")
-        self._write_line_to_file('(' + ret_label + ')')
-
-    def _decrease_frame_by_one_and_load_into_d(self):
-        """
-        decrease frame by one and load its value into D
-        """
-        self._write_line_to_file('@' + FRAME)
-        self._write_line_to_file("M=M-1")
-        self._write_line_to_file("A=M")
-        self._write_line_to_file("D=M")
-
-    def _write_label(self):
-        """
-        write asm code - label
-        """
-        temp_str = self._create_label()
-        self._write_line_to_file('(' + temp_str + ')')
-
-    def _create_label(self):
-        """
-        create label according to naming conventions
-        """
-        return self.current_function + '$' + self.parser.get_arg1()
-
-    def _write_arithmetic(self):
-        """
-        Writer for arithmetic function
-        """
-        if self.parser.get_argument1() == utils.Arithmetics.Add:
-            self._write_add()
-        if self.parser.get_argument1() == utils.Arithmetics.Sub:
-            self._write_sub()
-        if self.parser.get_argument1() == utils.Arithmetics.Neg:
-            self._write_neg()
-        if self.parser.get_argument1() == utils.Arithmetics.Not:
-            self._write_not()
-        if self.parser.get_argument1() == utils.Arithmetics.And:
-            self._write_and()
-        if self.parser.get_argument1() == utils.Arithmetics.Eq:
-            self._write_eq()
-        if self.parser.get_argument1() == utils.Arithmetics.Or:
-            self._write_or()
-        if self.parser.get_argument1() == utils.Arithmetics.Gt:
-            self._write_gt()
-        if self.parser.get_argument1() == utils.Arithmetics.Lt:
-            self._write_lt()
-
-    def _write_sub(self):
-        """
-        write sub arithmetic
-        """
-        self._write_line_to_file("// sub")
-        self._decrease_SP_and_read_to_d()
-        self._decrease_stack_pointer_and_read_into_a()
-        self._write_line_to_file("D=M-D")
-        self._read_from_d_into_stack()
-
-    def _write_add(self):
-        """
-        write add arithmetic
-        """
-        self._write_line_to_file("// add")
-        self._decrease_SP_and_read_to_d()
-        self._decrease_stack_pointer_and_read_into_a()
-        self._write_line_to_file("D=D+M")
-        self._read_from_d_into_stack()
-
-    def _write_neg(self):
-        """
-        write neg arithmetic
-        """
-        self._write_line_to_file("// neg")
-        self._decrease_SP_and_read_to_d()
-        self._write_line_to_file("D=-D")
-        self._read_from_d_into_stack()
-
-    def _write_not(self):
-        """
-        write not arithmetic
-        """
-        self._write_line_to_file("// not")
-        self._decrease_SP_and_read_to_d()
-        self._write_line_to_file("D=!D")
-        self._read_from_d_into_stack()
-
-    def _write_and(self):
-        """
-        write and arithmetic
-        """
-        self._write_line_to_file("// and")
-        self._decrease_SP_and_read_to_d()
-        self._decrease_stack_pointer_and_read_into_a()
-        self._write_line_to_file("D=D&M")
-        self._read_from_d_into_stack()
-
-    def _write_eq(self):
-        """
-        write eq arithmetic
-        """
-        self._write_line_to_file("// eq")
-        self._decrease_SP_and_read_to_d()
-        self._decrease_stack_pointer_and_read_into_a()
-        self._write_line_to_file("A=M")
-        self._write_line_to_file("D=D-A")
-        self._write_line_to_file("@TRUE" + str(Writer.lg_gt_counter))
-        self._write_line_to_file("D;JEQ")
-        self._end_g_l_gate()
-
-    def _write_or(self):
-        """
-        write or arithmetic
-        """
-        self._write_line_to_file("// or")
-        self._decrease_SP_and_read_to_d()
-        self._decrease_stack_pointer_and_read_into_a()
-        self._write_line_to_file("D=D|M")
-        self._read_from_d_into_stack()
-
-    def _write_gt(self):
-        """
-        for gt function (greater than)
-        """
-        self._write_line_to_file("// gt")
-        self._decrease_SP_and_read_to_d()
-        self._write_line_to_file("@YBIGGERTHANZERO" + str(Writer.lg_gt_counter))
-        self._write_line_to_file("D;JGE")
-        # y bigger than zero
-        self._write_line_to_file("@R13")
-        # y loaded into R13
-        self._write_line_to_file("M=D")
-        self._decrease_SP_and_read_to_d()
-        # if x>=0 than it must be true
-        self._write_line_to_file("@TRUE" + str(Writer.lg_gt_counter))
-
-        self._write_line_to_file("D;JGE")
-        self._write_line_to_file("@R13")
-        # d = x - y
-        self._write_line_to_file("D=D-M")
-        self._write_line_to_file("@TRUE" + str(Writer.lg_gt_counter))
-        self._write_line_to_file("D;JGT")
-        # second part x >= 0
-        self._print_label_with_lg_gt_counter("YBIGGERTHANZERO")
-        self._write_line_to_file("@R13")
-        # y loaded into R13
-        self._write_line_to_file("M=D")
-        self._decrease_SP_and_read_to_d()
-        # if x<=0 than it must be false
-        self._write_line_to_file("@FALSE" + str(Writer.lg_gt_counter))
-        self._write_line_to_file("D;JLE")
-        # if y>0 and x<=0 than it must be false
-        self._write_line_to_file("@R13")
-        # d = x - y
-        self._write_line_to_file("D=D-M")
-        self._write_line_to_file("@TRUE" + str(Writer.lg_gt_counter))
-        self._write_line_to_file("D;JGT")
-        # false
-        self._print_label_with_lg_gt_counter("FALSE")
-        self._end_g_l_gate()
-
-    def _write_lt(self):
-        """
-        for lt function (less than)
-        """
-        self._write_line_to_file("// lt")
-        self._decrease_SP_and_read_to_d()
-        self._write_line_to_file("@YBIGGERTHANZERO" + str(Writer.lg_gt_counter))
-        self._write_line_to_file("D;JGE")
-        self._write_line_to_file("@R13")
-        self._write_line_to_file("M=D")
-        self._decrease_SP_and_read_to_d()
-        self._write_line_to_file("@FALSE" + str(Writer.lg_gt_counter))
-        self._write_line_to_file("D;JGE")
-        self._write_line_to_file("@R13")
-        self._write_line_to_file("D=D-M")
-        self._write_line_to_file("@FALSE" + str(Writer.lg_gt_counter))
-        self._write_line_to_file("D;JGE")
-        self._print_label_with_lg_gt_counter("YBIGGERTHANZERO")
-        self._write_line_to_file("@R13")
-        self._write_line_to_file("M=D")
-        self._decrease_SP_and_read_to_d()
-        self._write_line_to_file("@TRUE" + str(Writer.lg_gt_counter))
-        self._write_line_to_file("D;JLE")
-        self._write_line_to_file("@R13")
-        self._write_line_to_file("D=D-M")
-        self._write_line_to_file("@TRUE" + str(Writer.lg_gt_counter))
-        self._write_line_to_file("D;JLT")
-        self._print_label_with_lg_gt_counter("FALSE")
-        self._end_g_l_gate()
-
-    def _end_g_l_gate(self):
-        self._write_line_to_file("@0")
-        self._write_line_to_file("D=A")
-        self._write_line_to_file("@END" + str(Writer.lg_gt_counter))
-        self._write_line_to_file("0;JMP")
-        self._print_label_with_lg_gt_counter("TRUE")
-        self._write_line_to_file("D=-1")
-        self._print_label_with_lg_gt_counter("END")
-        self._load_value_from_d()
-        self._stack_pointer_inc()
-        Writer.lg_gt_counter += 1
-
-    def _print_label_with_lg_gt_counter(self, label):
-        """
-        print with counter
-        """
-        self._write_line_to_file("(" + label + str(Writer.lg_gt_counter) + ")")
-
-    def _decrease_stack_pointer_and_read_into_a(self):
-        """
-        Read into A variable
-        """
-        self._write_line_to_file("@" + SP)
-        self._write_line_to_file("M=M-1")
-        self._write_line_to_file("@0")
-        self._write_line_to_file("A=M")
-
-    def _read_from_d_into_stack(self):
-        """
-        Read to D variable
-        """
-        self._write_line_to_file("@0")
-        self._write_line_to_file("A=M")
-        self._write_line_to_file("M=D")
-        self._stack_pointer_inc()
-
-    def _write_push_pop(self, command, arg1, arg2):
-        """
-        Write push or pop commands
-        """
-        if command == utils.Commands.Push:
-            self._write_line_to_file("// Push")
-            self._write_push(arg1, arg2)
-        if command == utils.Commands.Pop:
-            self._write_line_to_file("// Pop")
-            if arg1 == "temp":
-                place_in_stack = str(5 + int(arg2))
-                self._decrease_SP_and_read_to_d()
-                self._write_line_to_file("@" + place_in_stack)
-                self._write_line_to_file("M=D")
-            elif arg1 in TRANSITION_TO_ADDRESS:
-                self._write_line_to_file("@" + str(TRANSITION_TO_ADDRESS[arg1]))
-                self._write_line_to_file("D=M")
-                self._write_line_to_file("@" + arg2)
-                self._write_line_to_file("D=A+D")
-                self._write_line_to_file("@" + str(TRANSITION_TO_ADDRESS[arg1]))
-                self._write_line_to_file("M=D")
-                self._decrease_SP_and_read_to_d()
-                self._write_line_to_file("@" + str(TRANSITION_TO_ADDRESS[arg1]))
-                self._write_line_to_file("A=M")
-                self._write_line_to_file("M=D")
-                self._write_line_to_file("@" + str(TRANSITION_TO_ADDRESS[arg1]))
-                self._write_line_to_file("D=M")
-                self._write_line_to_file("@" + arg2)
-                self._write_line_to_file("D=D-A")
-                self._write_line_to_file("@" + str(TRANSITION_TO_ADDRESS[arg1]))
-                self._write_line_to_file("M=D")
-            elif arg1 == "static":
-                str_stack_var_name = str(self.file_name) + '.' + str(arg2)
-                self._decrease_SP_and_read_to_d()
-                self._write_line_to_file("@" + str_stack_var_name)
-                self._write_line_to_file("M=D")
-            elif arg1 == "pointer":
-                if arg2 == SP:
-                    this_or_that = SYMBOLS_TABLE["THIS"]
-                else:
-                    this_or_that = SYMBOLS_TABLE["THAT"]
-                self._decrease_SP_and_read_to_d()
-                self._write_line_to_file("@" + str(this_or_that))
-                self._write_line_to_file("M=D")
-
-    def _decrease_SP_and_read_to_d(self):
-        """
-        Decrease SP and read its content to D
-        """
-        self._decrease_stack_pointer_and_read_into_a()
-        self._write_line_to_file("D=M")
-
-    def _write_push(self, arg1, arg2):
-        """
-        Push creation
-        """
-        if arg1 == "temp":
-            place_in_stack = str(5 + int(arg2))
-            self._write_line_to_file("@" + place_in_stack)
-            self._stack_adding()
-        elif arg1 in TRANSITION_TO_ADDRESS:
-            self._write_line_to_file("@" + str(TRANSITION_TO_ADDRESS[arg1]))
-            self._write_line_to_file("D=M")
-            self._write_line_to_file("@" + arg2)
-            self._write_line_to_file("A=D+A")
-            self._stack_adding()
-        elif arg1 == "constant":
-            self._add_value_to_stack(arg2)
-        elif arg1 == "static":
-            str_stack_var_name = str(self.file_name) + '.' + str(arg2)
-            self._write_line_to_file("@" + str_stack_var_name)
-            self._write_line_to_file("D=M")
-            self._load_value_from_d()
-            self._stack_pointer_inc()
-        elif arg1 == "pointer":
-            if arg2 == SP:
-                this_or_that = SYMBOLS_TABLE["THIS"]
-            else:
-                this_or_that = SYMBOLS_TABLE["THAT"]
-            self._write_line_to_file("@" + str(this_or_that))
-            self._write_line_to_file("D=M")
-            self._load_value_from_d()
-            self._stack_pointer_inc()
-
-    def _add_value_to_stack(self, value):
-        """
-        add value to stack
-        """
-        self._write_line_to_file("@" + str(value))
-        self._write_line_to_file("D=A")
-        self._load_value_from_d()
-        self._stack_pointer_inc()
-
-    def _stack_adding(self):
-        """
-        add to stack from D
-        """
-        self._write_line_to_file("D=M")
-        self._load_value_from_d()
-        self._stack_pointer_inc()
-
-    def _load_value_from_d(self):
-        """
-        load value from D
-        """
-        self._write_line_to_file("@0")
-        self._write_line_to_file("A=M")
-        self._write_line_to_file("M=D")
-
-    def _stack_pointer_inc(self):
-        """
-        increment stack pointer(SP) by 1
-        """
-        self._write_line_to_file("@" + SP)
-        self._write_line_to_file("M=M+1")
-
-    def _write_line_to_file(self, string_to_write):
-        """
-        write line to file
-        """
-        self.out_file.write(string_to_write + utils.NEW_LINE)
+    def _new_label(self):
+        self._label_count += 1
+        return 'LABEL' + str(self._label_count)

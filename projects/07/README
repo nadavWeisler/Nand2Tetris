@@ -1,0 +1,19 @@
+weisler
+===============================================================================
+Nadav Weisler ID 316493758, nadav.weisler1@mail.huji.ac.il
+===============================================================================
+
+                           Project 7 - Stack Arithmetic
+                           ----------------------- 
+  
+
+Submitted Files
+---------------
+README - This file.
+VMtranslator - VMtranslator run command.
+vmTranslator.py - Translator script.
+Makefile - Make file.
+utils.py - Utilities.
+writer.py - Code writer.
+vm_parser.py - VM parser.
+lexer.py - Lexer file.
