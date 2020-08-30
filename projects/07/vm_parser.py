@@ -1,61 +1,66 @@
-from utils import *
-from lexer import *
+COMMENT = "//"
 
 
-class Parser(object):
-    """
-    Parser class
-    """
+class Parser:
+    def __init__(self, file_name):
+        self.file_name = open(file_name, "r")
+        self.current_command = ""
+        self.current_position = -1
+        self.commands = []
+        self.arithmetic = ["add", "sub", "neg", "eq", "gt", "lt", "and", "or", "not"]
 
-    def __init__(self, file):
-        self.lexer = Lexer(file)
-        self._init_command()
+        for line in self.file_name.readlines():
+            command = line.split(COMMENT)
+            if command[0].strip() != "":
+                self.commands.append(command[0].strip())
 
-    def _init_command(self):
-        self._command_type = C_ERROR
-        self._argument_1 = ''
-        self._argument_2 = 0
-
-    def has_more_commands(self):
-        return self.lexer.has_more()
+    def got_more_commands(self):
+        if self.current_position < len(self.commands) - 1:
+            return True
+        else:
+            return False
 
     def advance(self):
-        self._init_command()
-        self.lexer.next()
-        token, val = self.lexer.current_token
-
-        if token != ID:
-            pass
-        if val in NULLARY_COMMANDS:
-            self._nullary_command(val)
-        elif val in UNARY_COMMANDS:
-            self._unary_command(val)
-        elif val in BINARY_COMMANDS:
-            self._binary_command(val)
+        if self.got_more_commands():
+            self.current_command = self.commands[self.current_position + 1]
+            self.current_position += True
 
     def command_type(self):
-        return self._command_type
+        name = self.current_command.split(" ")[0]
+        if name in self.arithmetic:
+            return "C_ARITHMETIC"
+        elif name == "push":
+            return "C_PUSH"
+        elif name == "pop":
+            return "C_POP"
+        elif name == "label":
+            return "C_LABEL"
+        elif name == "function":
+            return "C_FUNCTION"
+        elif name == "call":
+            return "C_CALL"
+        elif name == "return":
+            return "C_RETURN"
+        elif name == "goto":
+            return "C_GOTO"
+        elif name == "if-goto":
+            return "C_IF"
 
     def argument_1(self):
-        return self._argument_1
+        if self.current_command == "return":
+            pass
+        elif self.command_type() == "C_ARITHMETIC":
+            return self.current_command
+        else:
+            return self.current_command.split(" ")[1]
 
     def argument_2(self):
-        return self._argument_2
+        c_type = self.command_type()
+        if c_type == "C_PUSH" or \
+                c_type == "C_POP" or \
+                c_type == "C_FUNCTION" or \
+                c_type == "C_CALL":
+            return self.current_command.split(" ")[2]
 
-    def _set_command_type(self, command_id):
-        self._command_type = COMMANDS[command_id]
-
-    def _nullary_command(self, command_id):
-        self._set_command_type(command_id)
-        if COMMANDS[command_id] == C_ARITHMETIC:
-            self._argument_1 = command_id
-
-    def _unary_command(self, command_id):
-        self._nullary_command(command_id)
-        self.token, val = self.lexer.next_token()
-        self._argument_1 = val
-
-    def _binary_command(self, command_id):
-        self._unary_command(command_id)
-        self.token, val = self.lexer.next_token()
-        self._argument_2 = int(val)
+    def command_exist(self):
+        return self.current_command.split(" ")[0]
