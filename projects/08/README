@@ -1,0 +1,18 @@
+weisler
+===============================================================================
+Nadav Weisler ID 316493758, nadav.weisler1@mail.huji.ac.il
+===============================================================================
+
+                           Project 8 - Program Control
+                           ----------------------- 
+  
+
+Submitted Files
+---------------
+README - This file.
+VMtranslator - VMtranslator run command.
+vmTranslator.py - Translator script.
+Makefile - Make file.
+writer.py - Code writer.
+vm_parser.py - VM parser.
+utils.py - utilities file.
