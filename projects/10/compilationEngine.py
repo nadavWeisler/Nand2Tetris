@@ -2,6 +2,8 @@ import sys
 
 from jackTokenizer import *
 
+from utils import *
+
 RETURN_STATEMENT = "returnStatement"
 
 CLASS_VAR_DEC = "classVarDec"
@@ -38,23 +40,45 @@ COMPILE_CLASS_ERROR = "invalid input in compile class"
 
 COMPILE_TERM_ERROR = "invalid input in compile term"
 
-CLASS_VAR_KEYWORDS = ['static', 'field']
+CLASS_VAR_KEYWORDS = [
+    'static', 'field'
+]
 
-TYPE_KEYWORDS = ['int', 'char', 'boolean']
+KEYWORDS_TYPES = [
+    'int', 'char',
+    'boolean'
+]
 
-SUBROUTINE = ['constructor', 'function', 'method']
+SUB_ROUTINE = [
+    'constructor', 'function',
+    'method'
+]
 
-UNARY_OPS = ['-', '~']
+UNARY = ['-', '~']
 
-KEYWORD_CONST = ['true', 'false', 'null', 'this']
+CONST_KEYWORD = [
+    'true', 'false',
+    'null', 'this'
+]
 
-STATEMENTS = ['let', 'if', 'while', 'do', 'return']
+STATEMENTS = [
+    'let', 'if',
+    'while', 'do',
+    'return'
+]
 
-TOKEN_TYPE_STR = {"KEYWORD": "keyword", "SYMBOL": "symbol",
-                  "IDENTIFIER": "identifier", "INT_CONST": "integerConstant",
-                  "STRING_CONST": "stringConstant"}
-OPERATIONS = ['+', '-', '=', '>',
-              '<', "*", "/", "&", "|"]
+TOKEN_TYPE_STRINGS = {
+    "KEYWORD": "keyword",
+    "SYMBOL": "symbol",
+    "IDENTIFIER": "identifier",
+    "INT_CONST": "integerConstant",
+    "STRING_CONST": "stringConstant"
+}
+
+OPERATORS = [
+    '+', '-', '=', '>',
+    '<', "*", "/", "&", "|"
+]
 
 
 class CompilationEngine:
@@ -70,13 +94,13 @@ class CompilationEngine:
             print(COMPILE_CLASS_ERROR)
             sys.exit()
         self._write_token(self.tokenizer.token_type())
-        self._check_write_name()
-        self._check_write_symbol("{")
-        while self._check_if_var_dec():
+        self._is_write_name()
+        self._is_write_symbol("{")
+        while self._is_var_dec():
             self.compile_class_var_dec()
-        while self._check_subroutine_dec():
+        while self._is_subroutine_dec():
             self.compile_subroutine_dec()
-        self._check_write_symbol("}")
+        self._is_write_symbol("}")
         self._write_outer_tag(CLASS_TAG, IS_ENDING)
 
     def compile_class_var_dec(self):
@@ -88,32 +112,32 @@ class CompilationEngine:
         if self.tokenizer.key_word() == 'void':
             self._write_token(self.tokenizer.token_type())
         else:
-            self._check_write_type()
-        self._check_write_name()
-        self._check_write_symbol("(")
+            self._is_write_type()
+        self._is_write_name()
+        self._is_write_symbol("(")
         self.compile_parameter_list()
-        self._check_write_symbol(")")
+        self._is_write_symbol(")")
         self.compile_subroutine_body()
         self._write_outer_tag(SUBROUTINE_TAG, IS_ENDING)
 
     def compile_parameter_list(self):
         self._write_outer_tag(PARAMETER_LIST)
         if self.tokenizer.symbol() != ')':
-            self._check_write_type()
-            self._check_write_name()
-            while self._check_if_comma():
-                self._check_write_symbol(",")
-                self._check_write_type()
-                self._check_write_name()
+            self._is_write_type()
+            self._is_write_name()
+            while self._is_comma():
+                self._is_write_symbol(",")
+                self._is_write_type()
+                self._is_write_name()
         self._write_outer_tag(PARAMETER_LIST, IS_ENDING)
 
     def compile_subroutine_body(self):
         self._write_outer_tag(SUBROUTINE_BODY)
-        self._check_write_symbol("{")
+        self._is_write_symbol("{")
         while self.tokenizer.key_word() == 'var':
             self.compile_var_dec()
         self.compile_statements()
-        self._check_write_symbol("}")
+        self._is_write_symbol("}")
         self._write_outer_tag(SUBROUTINE_BODY, IS_ENDING)
 
     def compile_var_dec(self):
@@ -122,17 +146,17 @@ class CompilationEngine:
     def compile_variable(self, tag):
         self._write_outer_tag(tag)
         self._write_token(self.tokenizer.token_type())
-        self._check_write_type()
-        self._check_write_name()
-        while self._check_if_comma():
-            self._check_write_symbol(",")
-            self._check_write_name()
-        self._check_write_symbol(";")
+        self._is_write_type()
+        self._is_write_name()
+        while self._is_comma():
+            self._is_write_symbol(",")
+            self._is_write_name()
+        self._is_write_symbol(";")
         self._write_outer_tag(VAR_TAG, IS_ENDING)
 
     def compile_statements(self):
         self._write_outer_tag(STATEMENTS_TAG)
-        while self._check_if_statement():
+        while self._is_statement():
             if self.tokenizer.key_word() == 'let':
                 self.compile_let()
             elif self.tokenizer.key_word() == 'if':
@@ -149,47 +173,47 @@ class CompilationEngine:
         self._write_outer_tag(DO_STATEMENT_TAG)
         self._write_token(self.tokenizer.token_type())
         self.compile_subroutine_call()
-        self._check_write_symbol(";")
+        self._is_write_symbol(";")
         self._write_outer_tag(DO_STATEMENT_TAG, IS_ENDING)
 
     def compile_let(self):
         self._write_outer_tag(LET_TAG)
         self._write_token(self.tokenizer.token_type())
-        self._check_write_name()
-        if self.tokenizer.symbol() == '[':  # if there is an array
-            self._check_write_symbol("[")
+        self._is_write_name()
+        if self.tokenizer.symbol() == '[':
+            self._is_write_symbol("[")
             self.compile_expression()
-            self._check_write_symbol("]")
-        self._check_write_symbol("=")
+            self._is_write_symbol("]")
+        self._is_write_symbol("=")
         self.compile_expression()
-        self._check_write_symbol(";")
+        self._is_write_symbol(";")
         self._write_outer_tag(LET_TAG, IS_ENDING)
 
     def compile_if(self):
         self._write_outer_tag(IF_TAG)
         self._write_token(self.tokenizer.token_type())
-        self._check_write_symbol("(")
+        self._is_write_symbol("(")
         self.compile_expression()
-        self._check_write_symbol(")")
-        self._check_write_symbol("{")
+        self._is_write_symbol(")")
+        self._is_write_symbol("{")
         self.compile_statements()
-        self._check_write_symbol("}")
+        self._is_write_symbol("}")
         if self.tokenizer.key_word() == 'else':
             self._write_token(self.tokenizer.token_type())
-            self._check_write_symbol("{")
+            self._is_write_symbol("{")
             self.compile_statements()
-            self._check_write_symbol("}")
+            self._is_write_symbol("}")
         self._write_outer_tag(IF_TAG, IS_ENDING)
 
     def compile_while(self):
         self._write_outer_tag("whileStatement")
         self._write_token(self.tokenizer.token_type())
-        self._check_write_symbol("(")
+        self._is_write_symbol("(")
         self.compile_expression()
-        self._check_write_symbol(")")
-        self._check_write_symbol("{")
+        self._is_write_symbol(")")
+        self._is_write_symbol("{")
         self.compile_statements()
-        self._check_write_symbol("}")
+        self._is_write_symbol("}")
         self._write_outer_tag("whileStatement", IS_ENDING)
 
     def compile_return(self):
@@ -197,39 +221,39 @@ class CompilationEngine:
         self._write_token(self.tokenizer.token_type())
         if not self.tokenizer.symbol() == ';':
             self.compile_expression()
-        self._check_write_symbol(";")
+        self._is_write_symbol(";")
         self._write_outer_tag(RETURN_STATEMENT, IS_ENDING)
 
     def compile_subroutine_call(self):
-        self._check_write_name()
+        self._is_write_name()
         if self.tokenizer.symbol() == ".":
-            self._check_write_symbol(".")
-            self._check_write_name()
-        self._check_write_symbol("(")
+            self._is_write_symbol(".")
+            self._is_write_name()
+        self._is_write_symbol("(")
         self.compile_expression_list()
-        self._check_write_symbol(")")
+        self._is_write_symbol(")")
 
     def compile_expression(self):
         self._write_outer_tag(EXPRESSION)
         self.compile_term()
-        while self.tokenizer.symbol() in OPERATIONS:
-            self._write_op()
+        while self.tokenizer.symbol() in OPERATORS:
+            self._write_operation()
             self.compile_term()
         self._write_outer_tag(EXPRESSION, IS_ENDING)
 
     def compile_term(self):
         self._write_outer_tag(TERM)
-        cur_type = self.tokenizer.token_type()
+        current_type = self.tokenizer.token_type()
         if self.tokenizer.token_type() in ["INT_CONST", "STRING_CONST"]:
-            self._write_token(cur_type)
-        elif self.tokenizer.key_word() in KEYWORD_CONST:
-            self._write_token(cur_type)
+            self._write_token(current_type)
+        elif self.tokenizer.key_word() in CONST_KEYWORD:
+            self._write_token(current_type)
         elif self.tokenizer.symbol() == '(':
-            self._write_token(cur_type)
+            self._write_token(current_type)
             self.compile_expression()
-            self._check_write_symbol(")")
-        elif self.tokenizer.symbol() in UNARY_OPS:
-            self._write_op()
+            self._is_write_symbol(")")
+        elif self.tokenizer.symbol() in UNARY:
+            self._write_operation()
             self.compile_term()
         elif self.tokenizer.identifier():
             self._compile_term_identifier()
@@ -240,49 +264,49 @@ class CompilationEngine:
 
     def _compile_term_identifier(self):
         if self.tokenizer.get_next_token() == '[':
-            self._check_write_name()
-            self._check_write_symbol("[")
+            self._is_write_name()
+            self._is_write_symbol("[")
             self.compile_expression()
-            self._check_write_symbol("]")
+            self._is_write_symbol("]")
         elif self.tokenizer.get_next_token() in [".", "("]:
             self.compile_subroutine_call()
         else:
-            self._check_write_name()
+            self._is_write_name()
 
     def compile_expression_list(self):
         self._write_outer_tag(EXPRESSION_LIST)
         if self.tokenizer.symbol() != ')':
             self.compile_expression()
-            while self._check_if_comma():
+            while self._is_comma():
                 self._write_token(self.tokenizer.token_type())
                 self.compile_expression()
         self._write_outer_tag(EXPRESSION_LIST, IS_ENDING)
 
-    def _check_if_var_dec(self):
+    def _is_var_dec(self):
         return self.tokenizer.key_word() in CLASS_VAR_KEYWORDS
 
-    def _check_subroutine_dec(self):
-        return self.tokenizer.key_word() in SUBROUTINE
+    def _is_subroutine_dec(self):
+        return self.tokenizer.key_word() in SUB_ROUTINE
 
-    def _check_if_comma(self):
+    def _is_comma(self):
         return self.tokenizer.symbol() == ','
 
-    def _check_if_statement(self):
+    def _is_statement(self):
         return self.tokenizer.key_word() in STATEMENTS
 
-    def _check_write_type(self):
-        if self.tokenizer.key_word() in TYPE_KEYWORDS:
+    def _is_write_type(self):
+        if self.tokenizer.key_word() in KEYWORDS_TYPES:
             self._write_token(self.tokenizer.token_type())
         else:
-            self._check_write_name()
+            self._is_write_name()
 
-    def _check_write_symbol(self, expected_symbol):
+    def _is_write_symbol(self, expected_symbol):
         if self.tokenizer.symbol() != expected_symbol:
             print(ILLEGAL_STATEMENT_ERROR)
             sys.exit()
         self._write_token(self.tokenizer.token_type())
 
-    def _check_write_name(self):
+    def _is_write_name(self):
         if self.tokenizer.identifier():
             self._write_token("IDENTIFIER")
         else:
@@ -293,13 +317,13 @@ class CompilationEngine:
         if end:
             self._indent_count -= 1
             self.out_file.write("\t" * self._indent_count)
-            self.out_file.write("</" + tag_str + ">\n")
+            self.out_file.write("</" + tag_str + ">" + NEW_LINE)
         else:
             self.out_file.write("\t" * self._indent_count)
-            self.out_file.write("<" + tag_str + ">\n")
+            self.out_file.write("<" + tag_str + ">" + NEW_LINE)
             self._indent_count += 1
 
-    def _write_op(self):
+    def _write_operation(self):
         self.out_file.write("\t" * self._indent_count)
         self.out_file.write("<symbol> ")
         if self.tokenizer.symbol() == '<':
@@ -312,12 +336,12 @@ class CompilationEngine:
             self.out_file.write("&quot;")
         else:
             self.out_file.write(self.tokenizer.symbol())
-        self.out_file.write(" </symbol>\n")
+        self.out_file.write(" </symbol>" + NEW_LINE)
         self.tokenizer.advance()
 
     def _write_token(self, cur_type):
         self.out_file.write("\t" * self._indent_count)
-        self.out_file.write("<" + TOKEN_TYPE_STR[cur_type] + "> ")
+        self.out_file.write("<" + TOKEN_TYPE_STRINGS[cur_type] + "> ")
         self.out_file.write(str(self.tokenizer.get_token_string()))
-        self.out_file.write(" </" + TOKEN_TYPE_STR[cur_type] + ">\n")
+        self.out_file.write(" </" + TOKEN_TYPE_STRINGS[cur_type] + ">" + NEW_LINE)
         self.tokenizer.advance()

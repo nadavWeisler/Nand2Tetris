@@ -1,5 +1,5 @@
 import os
-from CompilationEngine import *
+from compilationEngine import *
 from utils import *
 
 INVALID_INPUT_ERROR = "Invalid input file"
