@@ -1,0 +1,27 @@
+annaelleb, gogoi
+===============================================================================
+Ido Goldberg, ID 316082411, ido.goldberg2@huji.ac.il
+Annaelle bensimon, ID 205798846, lisa@cs.huji.ac.il
+===============================================================================
+
+                           Project 10 - Compiler (first part)
+                           ----------------------- 
+  
+
+Submitted Files
+---------------
+README - This file.
+JackAnalyzer.py - the main method. can run recursively on folders.
+Tokenizer.py - generator. use the yield keyword to provide tokens from .jack
+file
+CompilationEngine.py - most of the program. analyze the tokens by jack
+the grammar
+Makefile
+
+Remarks
+-------
+* the tokenizer objects is using regex to analyze the jack file, and the
+CompilationEngine object is getting the token to create the required XML file.
+* We have methods that write to file, each one for diffrent type of object to
+write, so if needed, we can easily change the behavior of the program.
+

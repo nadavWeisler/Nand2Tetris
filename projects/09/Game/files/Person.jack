@@ -1,0 +1,54 @@
+class Person {
+    constructor Person new() {
+		do Man1.draw(0);
+	}
+}
+
+
+class Man1 {
+    function void draw(int location) {
+            var int memAddress;
+            let memAddress = 16384 + location;
+            do Memory.poke(memAddress + 0, 960);
+            do Memory.poke(memAddress + 32, 1056);
+            do Memory.poke(memAddress + 64, 2704);
+            do Memory.poke(memAddress + 96, 2064);
+            do Memory.poke(memAddress + 128, 2704);
+            do Memory.poke(memAddress + 160, 2320);
+            do Memory.poke(memAddress + 192, 1056);
+            do Memory.poke(memAddress + 224, 968);
+            do Memory.poke(memAddress + 256, 392);
+            do Memory.poke(memAddress + 288, 8184);
+            do Memory.poke(memAddress + 320, 4480);
+            do Memory.poke(memAddress + 352, 4480);
+            do Memory.poke(memAddress + 384, 576);
+            do Memory.poke(memAddress + 416, 576);
+            do Memory.poke(memAddress + 448, 1728);
+            do Memory.poke(memAddress + 480, 0);
+            return;
+    }
+}
+
+class Man2 {
+    function void draw(int location) {
+		var int memAddress;
+		let memAddress = 16384 + location;
+		do Memory.poke(memAddress + 0, 960);
+		do Memory.poke(memAddress + 32, 1056);
+		do Memory.poke(memAddress + 64, 2704);
+		do Memory.poke(memAddress + 96, 2064);
+		do Memory.poke(memAddress + 128, 2704);
+		do Memory.poke(memAddress + 160, 2320);
+		do Memory.poke(memAddress + 192, 1056);
+		do Memory.poke(memAddress + 224, 5056);
+		do Memory.poke(memAddress + 256, 4480);
+		do Memory.poke(memAddress + 288, 8184);
+		do Memory.poke(memAddress + 320, 392);
+		do Memory.poke(memAddress + 352, 392);
+		do Memory.poke(memAddress + 384, 576);
+		do Memory.poke(memAddress + 416, 576);
+		do Memory.poke(memAddress + 448, 1728);
+		do Memory.poke(memAddress + 480, 0);
+		return;
+	}
+}

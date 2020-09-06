@@ -1,0 +1,137 @@
+class Road {
+	field Person person;
+	field Obstacle obstacle;
+	field Square square;
+	field int last_square;
+	field int first_square;
+	 constructor Road new() {
+		var int i;
+		let last_square = 0;
+		let first_square = 4;
+		return this;
+	 }
+	 
+	method void dispose() {
+		var int i;
+		let i = 0;
+        do Memory.deAlloc(this.obstacle);
+        do Memory.deAlloc(this.square);
+        do Memory.deAlloc(this);
+        return;
+    }
+	
+	
+	method void draw() {
+        //do Screen.drawRectangle(x, y, x + width, y + height);
+        return;
+    }
+	
+	method boolean check_collision( int Px, int Py) {
+		var int i,x,y;
+		let i = 0;
+		while (i < curr_length)
+		{
+			let square = arr[i];
+			let x = square.getX();
+			let y = square.getY();
+			if (x > Px-1)
+			{
+				if (x < Px +16)
+				{
+					if (y > Py -1 )
+					{
+						if (y < Py +16 )
+						{
+						//do Output.printString("true: ");
+						//return true;
+						}
+					}
+				}
+			}
+			let i = i + 1;
+		}
+		return false;
+	}
+	
+    method void move(int direction) {
+		var int i,x,y;
+		let i = 0;
+
+		let square = arr[first_square];
+		let x = square.getX();
+		let y = square.getY();
+		//prevent moving backwards
+		if (direction = 1)
+		{
+			if (curr_direction = 2)
+			{
+				let direction = curr_direction;
+			}
+		}
+		if (direction = 2)
+		{
+			if (curr_direction = 1)
+			{
+				let direction = curr_direction;
+			}
+		}
+		if (direction = 3)
+		{
+			if (curr_direction = 4)
+			{
+				let direction = curr_direction;
+			}
+		}
+		if (direction = 4)
+		{
+			if (curr_direction = 3)
+			{
+				let direction = curr_direction;
+			}
+		}
+		//initialize movment
+		if (direction = 1)
+		{
+			
+			let y = y - 16;
+		}
+		if (direction = 2)
+		{
+				let y = y + 16;
+		}
+		if (direction = 3)
+		{
+				let x = x - 16;
+		}
+		if (direction = 4)
+		{
+				let x = x + 16;
+		}
+		let square = arr[last_square];
+		do square.reDraw(x,y);
+
+		let first_square = last_square;
+		let last_square = last_square +1;
+		if (last_square = curr_length)
+		{
+			let last_square = 0;
+		}
+		let curr_direction = direction;
+		return;
+   }
+   
+
+function void DEBUG_printArray(Array a, int len, String title)
+  {
+    var int i;      // Initialized to 0;
+    do Output.printString(title);
+    do Output.println();
+    while (i < len){
+      do Output.printInt(a[i]);
+      do Output.printString(", ");
+      let i = i+1;
+    }
+    do title.dispose();         // Prevent string constant memory leak.
+    return;
+  }
+}

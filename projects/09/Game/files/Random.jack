@@ -1,0 +1,12 @@
+/** Initializes a new Snake game and starts running it. */
+class RandomGenerator {
+    function int pseudo_random(int max, int prev_number) {
+        var int temp;
+		let temp = (prev_number*7) + 173;
+		while (temp > max)
+		{
+			let temp = temp - max;
+		}
+		return temp;
+    }
+}

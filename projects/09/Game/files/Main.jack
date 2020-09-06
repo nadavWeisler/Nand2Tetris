@@ -1,0 +1,10 @@
+/** Initializes a new game */
+class Main {
+    function void main() {
+        var Runner game;
+        let game = Runner.new();
+        do game.run();
+        do game.dispose();
+        return;
+    }
+}

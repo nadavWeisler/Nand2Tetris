@@ -1,0 +1,70 @@
+
+/** Initializes a new Snake game and starts running it. */
+class Runner {
+	field boolean exit;
+	field Person person;
+	field Obstacle obstacle;
+	field Road road;
+
+    constructor GameRunner new() {
+		do Screen.clearScreen();
+		let road = Road.new();
+		do createPerson();
+		let exit = false;
+		return this;
+	}
+
+	method void createPerson(){
+		let Person = Person.new(0,0);
+		return;
+	}
+
+	method void dispose() {
+		do snake.dispose();
+		do food.dispose();
+		do Memory.deAlloc(this);
+        return;
+	}
+	
+	method void run() {
+		var char key;
+		while (~exit) {
+			//let key = Keyboard.keyPressed(); TODO check if enters twice;
+			while (key = 0){
+				let key = Keyboard.keyPressed();
+				//do Output.printString("key not pressed");
+				//do something. move things around
+				do snake.move(direction);
+				if (snake.check_collision(foodx,foody))
+				{
+					do food.dispose();
+					do createFood();
+					do Output.printString("Score: 1");
+				}
+				do Sys.wait(100);
+			}
+			
+			while (~(key = 0)){
+				let key = Keyboard.keyPressed();
+				//do something. move things around
+				//do Output.printString("key pressed");
+				if (key = 131) { let direction = 1; }   // up arrow
+				if (key = 133) { let direction = 2; }   // down arrow
+				if (key = 130) { let direction = 3; }   // left arrow
+				if (key = 132) { let direction = 4; }   // right arrow
+				
+				
+				do snake.move(direction);
+				if (snake.check_collision(foodx,foody))
+				{
+					do food.dispose();
+					do createFood();
+					do Output.printString("Score: 1");
+				}
+				do Sys.wait(100);
+			}
+		
+		}
+	return;
+	}
+}
