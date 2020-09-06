@@ -53,7 +53,8 @@ STATEMENTS = ['let', 'if', 'while', 'do', 'return']
 TOKEN_TYPE_STR = {"KEYWORD": "keyword", "SYMBOL": "symbol",
                   "IDENTIFIER": "identifier", "INT_CONST": "integerConstant",
                   "STRING_CONST": "stringConstant"}
-OPERATIONS = ['+', '-', '=', '>', '<', "*", "/", "&", "|"]
+OPERATIONS = ['+', '-', '=', '>',
+              '<', "*", "/", "&", "|"]
 
 
 class CompilationEngine:
