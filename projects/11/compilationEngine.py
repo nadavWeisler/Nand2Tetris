@@ -1,6 +1,84 @@
 import sys
+
 from jackTokenizer import *
+
 from utils import *
+
+RETURN_STATEMENT = "returnStatement"
+
+CLASS_VAR_DEC = "classVarDec"
+
+ILLEGAL_STATEMENT_ERROR = "illegal statement"
+
+EXPRESSION_LIST = "expressionList"
+
+TERM = "term"
+
+EXPRESSION = "expression"
+
+IF_TAG = "ifStatement"
+
+LET_TAG = "letStatement"
+
+VAR_TAG = "varDec"
+
+SUBROUTINE_BODY = "subroutineBody"
+
+PARAMETER_LIST = "parameterList"
+
+SUBROUTINE_TAG = "subroutineDec"
+
+IS_ENDING = True
+
+DO_STATEMENT_TAG = "doStatement"
+
+STATEMENTS_TAG = "statements"
+
+CLASS_TAG = "class"
+
+COMPILE_CLASS_ERROR = "invalid input in compile class"
+
+COMPILE_TERM_ERROR = "invalid input in compile term"
+
+CLASS_VAR_KEYWORDS = [
+    'static', 'field'
+]
+
+KEYWORDS_TYPES = [
+    'int', 'char',
+    'boolean'
+]
+
+SUB_ROUTINE = [
+    'constructor', 'function',
+    'method'
+]
+
+UNARY = ['-', '~']
+
+CONST_KEYWORD = [
+    'true', 'false',
+    'null', 'this'
+]
+
+STATEMENTS = [
+    'let', 'if',
+    'while', 'do',
+    'return'
+]
+
+TOKEN_TYPE_STRINGS = {
+    "KEYWORD": "keyword",
+    "SYMBOL": "symbol",
+    "IDENTIFIER": "identifier",
+    "INT_CONST": "integerConstant",
+    "STRING_CONST": "stringConstant"
+}
+
+OPERATORS = [
+    '+', '-', '=', '>',
+    '<', "*", "/", "&", "|"
+]
 
 
 class CompilationEngine:

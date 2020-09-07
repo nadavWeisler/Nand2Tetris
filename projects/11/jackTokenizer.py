@@ -1,5 +1,35 @@
 import re
-from utils import *
+
+EMPTY_LINE = ""
+
+END_FILE = ""
+
+INT_RANGE = 32767
+
+KEYWORDS = {
+    "class": "CLASS", "method": "METHOD",
+    "function": "FUNCTION", "constructor": "CONSTRUCTOR",
+    "int": "INT", "boolean": "BOOLEAN", "char": "CHAR",
+    "void": "VOID", "var": "VAR", "static": "STATIC",
+    "field": "FIELD", "let": "LET", "do": "DO", "if": "IF",
+    "else": "ELSE", "while": "WHILE",
+    "return": "RETURN", "true": "TRUE", "false": "FALSE",
+    "null": "NULL", "this": "THIS"
+}
+
+SYMBOLS = ["{", "}", "(", ")", "[", "]",
+           ".", ",", ";", "+", "-", "*", "/",
+           "&", "|", "<", ">", "=", "~"]
+
+SYMBOLS_STRING = "{}()\[\].,;+\-*/&|<>=~"
+
+TOKEN_REG = r'(\".*\"|(?!\")[' + SYMBOLS_STRING + '])|(?!\")[ \t]'
+
+COMMENT_PATTERN = r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"'
+
+IDENTIFIER_PATTERN = "(\\s*(((_)[\\w])|[a-zA-Z])[\\w_]*\\s*)"
+
+STRING_PATTERN = "\"[^\"]*\""
 
 
 class JackTokenizer:
@@ -28,7 +58,7 @@ class JackTokenizer:
             if line.group(0).startswith('/'):
                 return " "
             else:
-                return line.group(0)
+                return  line.group(0)
 
         pattern = re.compile(COMMENT_PATTERN, re.DOTALL | re.MULTILINE)
         return re.sub(pattern, replace_space, text)
@@ -39,7 +69,7 @@ class JackTokenizer:
         line = line.strip()
         if line == EMPTY_LINE:
             return True
-        if line.startswith(LINE_COMMENT):
+        if line.startswith("//"):
             return True
         if line.startswith("/**") or line.startswith("/*"):
             self._in_comment = True
