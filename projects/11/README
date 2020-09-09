@@ -3,15 +3,18 @@ weisler
 Nadav Weisler ID 316493758, nadav.weisler1@mail.huji.ac.il
 ===============================================================================
 
-                           Project 10 - Compiler 1 - Syntax Analysis                           ----------------------- 
+                           Project 10 - Compiler 1 - Code Generation
   
 
 Submitted Files
 ---------------
 README - This file.
 JackAnalyzer - JackAnalyzer run command.
-jackAnalyzer.py - Compiler script.
+jackCompiler.py - Compiler script.
 Makefile - Make file.
+vmWriter.py - Virtual machine commands writer.
 jackTokenizer.py - Tokenize script.
-CompilationEngine.py - Compilation engine for compiler.
+compilationEngine.py - Compilation engine for compiler.
+Symbol.py - Symbol class.
+SymbolTable.py - Symbol table.
 utils.py - utilities file.

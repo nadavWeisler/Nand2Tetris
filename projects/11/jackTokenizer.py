@@ -1,158 +1,163 @@
 import re
-
-EMPTY_LINE = ""
-
-END_FILE = ""
-
-INT_RANGE = 32767
-
-KEYWORDS = {
-    "class": "CLASS", "method": "METHOD",
-    "function": "FUNCTION", "constructor": "CONSTRUCTOR",
-    "int": "INT", "boolean": "BOOLEAN", "char": "CHAR",
-    "void": "VOID", "var": "VAR", "static": "STATIC",
-    "field": "FIELD", "let": "LET", "do": "DO", "if": "IF",
-    "else": "ELSE", "while": "WHILE",
-    "return": "RETURN", "true": "TRUE", "false": "FALSE",
-    "null": "NULL", "this": "THIS"
-}
-
-SYMBOLS = ["{", "}", "(", ")", "[", "]",
-           ".", ",", ";", "+", "-", "*", "/",
-           "&", "|", "<", ">", "=", "~"]
-
-SYMBOLS_STRING = "{}()\[\].,;+\-*/&|<>=~"
-
-TOKEN_REG = r'(\".*\"|(?!\")[' + SYMBOLS_STRING + '])|(?!\")[ \t]'
-
-COMMENT_PATTERN = r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"'
-
-IDENTIFIER_PATTERN = "(\\s*(((_)[\\w])|[a-zA-Z])[\\w_]*\\s*)"
-
-STRING_PATTERN = "\"[^\"]*\""
+from utils import *
 
 
 class JackTokenizer:
 
-    def __init__(self, path):
-        self._file = open(path)
-        self.current_token = None
-        self._in_comment = False
-        self._token_buffer = self._get_tokens()
+    def __init__(self, file_name):
+        self._file = open(file_name, 'r')
+        self._data = []
+        self._types = []
+        self._tokens = []
+        self._xml = ['<tokens>']
+        self._tokens_iterator = iter(self._tokens)
+        self._token_types_iterator = iter(self._types)
+        self._current_token = ""
+        self._current_token_type = ""
 
-    def _get_tokens(self):
-        line = self._file.readline()
-        if line:
-            line = JackTokenizer.comment_remover(self._handle_comments(line).strip())
-            tokens = re.split(TOKEN_REG, line)
-            return list(filter(None, tokens))
+    def got_more_tokens(self):
+        try:
+            self._current_token = next(self._tokens_iterator)
+            self._current_token_type = next(self._token_types_iterator)
+            return True
+        except:
+            return False
 
-    def _handle_comments(self, line):
-        while self._check_if_to_skip(line):
-            line = self._file.readline()
-        return line
+    def get_token(self):
+        return self._current_token_type, self._current_token
 
     @staticmethod
-    def comment_remover(text):
-        def replace_space(line):
-            if line.group(0).startswith('/'):
-                return " "
+    def is_keyword(token):
+        return token in KEYWORDS
+
+    @staticmethod
+    def is_symbol(token):
+        return token in SYMBOLS
+
+    def is_identifier(self, token):
+        return len(token) >= 1 and not token[0].isdigit() and \
+               re.match(r'^[A-Za-z0-9_]+', token) is not None and \
+               not self.is_keyword(token)
+
+    @staticmethod
+    def is_int(token):
+        return token.isdigit() and 0 <= int(token) <= MAX_INT
+
+    @staticmethod
+    def is_string(token):
+        return len(token) >= 2 and \
+               (token[0] == '\"' and
+                token[-1] == '\"' and
+                '\"' not in token[1:-1] and
+                NEW_LINE not in token[1:-1])
+
+    def get_token_type(self, token):
+        if self.is_keyword(token):
+            return 'keyword'
+        elif self.is_symbol(token):
+            return 'symbol'
+        elif self.is_identifier(token):
+            return 'identifier'
+        elif self.is_int(token):
+            return 'integerConstant'
+        elif self.is_string(token):
+            return 'stringConstant'
+
+    def filter(self):
+        start = False
+        for line in self._file:
+            segment1 = ""
+            segment2 = ""
+            temp = line.strip()
+            matcher1 = re.match('.*\"[^\"]*//[^\"]*\".*', temp)
+            matcher2 = re.match('.*\"[^\"]*/\*{1,2}[^\"]*\".*', temp)
+            matcher3 = re.match('.*\"[^\"]*\*/[^\"]*\".*', temp)
+            if matcher1 is not None or matcher2 is not None or matcher3 is not None:
+                self._data.append(temp[:])
+                continue
+
+            arr = temp.split('/*')
+            if len(arr) > 1:
+                start = True
+                segment1 = arr[0]
+            if start:
+                arr = temp.split('*/')
+                if len(arr) > 1:
+                    segment2 = arr[1]
+                    start = False
+                result = segment1[:] + segment2[:]
+                if len(result):
+                    self._data.append(segment1[:] + segment2[:])
             else:
-                return  line.group(0)
+                temp = ' '.join(temp.split('//')[0].split())
+                if len(temp):
+                    self._data.append(temp[:])
 
-        pattern = re.compile(COMMENT_PATTERN, re.DOTALL | re.MULTILINE)
-        return re.sub(pattern, replace_space, text)
+    @staticmethod
+    def convert_lt_gt_quot_amp(char):
+        if char == '<':
+            return '&lt;'
+        elif char == '>':
+            return '&gt;'
+        elif char == '\"':
+            return '&quot;'
+        elif char == '&':
+            return '&amp;'
 
-    def _check_if_to_skip(self, line):
-        if line == END_FILE:
-            return False
-        line = line.strip()
-        if line == EMPTY_LINE:
-            return True
-        if line.startswith("//"):
-            return True
-        if line.startswith("/**") or line.startswith("/*"):
-            self._in_comment = True
-        if self._in_comment and line.endswith('*/'):
-            self._in_comment = False
-            return True
-        return self._in_comment
+    @staticmethod
+    def split_line_by_symbols(line):
+        result = list()
+        idx = 0
+        temp = ""
+        while idx < len(line):
+            if line[idx] == ' ':
+                result.append(temp)
+                temp = ""
+            elif line[idx] in SYMBOLS and line[idx] != '\"':
+                if len(temp):
+                    result.append(temp)
+                    result.append(line[idx])
+                    temp = ""
+                else:
+                    result.append(line[idx])
+            elif line[idx] == '\"':
+                next_idx = line.find('\"', idx + 1)
+                while line[next_idx - 1] == '\\':
+                    next_idx = line.find('\"', next_idx)
+                segment = line[idx:next_idx + 1]
+                result.append(segment)
+                temp = ""
+                idx = next_idx + 1
+                continue
+            else:
+                temp += line[idx]
+            idx += 1
 
-    def get_next_token(self):
-        if self._token_buffer:
-            return self._token_buffer[0]
+        return result
 
-    def has_more_tokens(self):
-        if self._token_buffer:
-            return len(self._token_buffer) > 0
-
-    def advance(self):
-        if not self.has_more_tokens():
-            self._file.close()
-            return
-        self.current_token = self._token_buffer.pop(0)
-        if not self.has_more_tokens():
-            self._token_buffer = self._get_tokens()
-
-    def token_type(self):
-        if not self.current_token:
-            return "No current token"
-        if self._is_keyword():
-            return "KEYWORD"
-        elif self._is_symbol():
-            return "SYMBOL"
-        elif self._is_int():
-            return "INT_CONST"
-        elif self._is_string():
-            return "STRING_CONST"
-        elif self._is_identifier():
-            return "IDENTIFIER"
-
-    def _is_symbol(self):
-        return self.current_token in SYMBOLS
-
-    def _is_keyword(self):
-        return self.current_token in KEYWORDS
-
-    def _is_int(self):
-        token = self.current_token
-        return token.isdigit() and int(token) in range(INT_RANGE)
-
-    def _is_string(self):
-        return re.match(STRING_PATTERN, self.current_token)
-
-    def _is_identifier(self):
-        return re.match(IDENTIFIER_PATTERN, self.current_token)
-
-    def key_word(self):
-        if self._is_keyword():
-            return self.current_token
-
-    def symbol(self):
-        if self._is_symbol():
-            return self.current_token
-
-    def identifier(self):
-        if self._is_identifier():
-            return self.current_token
-
-    def int_val(self):
-        if self._is_int():
-            return int(self.current_token)
-
-    def string_value(self):
-        if self._is_string():
-            return self.current_token.replace("\"", "")
-
-    def get_token_string(self):
-        current_type = self.token_type()
-        if current_type == "KEYWORD":
-            return self.key_word()
-        if current_type == "SYMBOL":
-            return self.symbol()
-        if current_type == "IDENTIFIER":
-            return self.identifier()
-        if current_type == "INT_CONST":
-            return self.int_val()
-        if current_type == "STRING_CONST":
-            return self.string_value()
+    def tokenize(self):
+        self.filter()
+        for line in self._data:
+            segments = self.split_line_by_symbols(line)
+            for segment in segments:
+                current_type = self.get_token_type(segment)
+                if current_type is not None:
+                    self._types.append(current_type)
+                    self._tokens.append(segment)
+                    if current_type not in {'stringConstant', 'integerConstant'}:
+                        current_type = current_type.lower()
+                    else:
+                        if current_type == 'stringConstant':
+                            current_type = 'stringConstant'
+                            self._tokens[-1] = self._tokens[-1].strip('\"')
+                            segment = segment.strip('\"')
+                        else:
+                            current_type = 'integerConstant'
+                    if segment in {'<', '>', '\"', '&'}:
+                        self._tokens[-1] = self.convert_lt_gt_quot_amp(segment)
+                        segment = self.convert_lt_gt_quot_amp(segment)
+                    self._xml.append('<' + current_type + '> ' + segment + ' </' + current_type + '>')
+                elif len(segment.strip()):
+                    print(segment)
+                    raise Exception("Invalid Token")
+        self._xml.append('</tokens>')
