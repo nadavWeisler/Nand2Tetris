@@ -11,54 +11,132 @@
  * string-oriented operations.
  */
 class String {
+	field Array str;
+	field int string_length;
+	field int max;
 
-    /** constructs a new empty string with a maximum length of maxLength
-     *  and initial length of 0. */
-    constructor String new(int maxLength) {
+    /** constructs a new empty string with a maximum string_lengthgth of maxstring_Lengthgth
+     *  and initial string_lengthgth of 0. */
+    constructor String new(int maxstring_Lengthgth) {
+		let string_length = 0;
+
+		if( maxstring_Lengthgth = 0 ) {
+            let maxstring_Lengthgth = 1;
+        }
+		let max = maxstring_Lengthgth;
+		let str = Array.new(maxstring_Lengthgth);
+		return this;
     }
 
     /** Disposes this string. */
     method void dispose() {
+		do Array.dispose(string);
+		return;
     }
 
-    /** Returns the current length of this string. */
-    method int length() {
+    /** Returns the current string_lengthgth of this string. */
+    method int string_lengthgth() {
+		return string_length;
     }
 
     /** Returns the character at the j-th location of this string. */
     method char charAt(int j) {
+		return str[j];
     }
 
     /** Sets the character at the j-th location of this string to c. */
     method void setCharAt(int j, char c) {
+		let str[j] = c;
+		return;
     }
 
     /** Appends c to this string's end and returns this string. */
     method String appendChar(char c) {
+		if (string_length < max) {
+			let str[string_length] = c;
+			let string_length = string_length + 1;
+		}
+		return this;
     }
 
     /** Erases the last character from this string. */
     method void eraseLastChar() {
+		if (string_length > 0) {
+			let string_length = string_length - 1;
+		}
+		return;
     }
 
     /** Returns the integer value of this string, 
      *  until a non-digit character is detected. */
     method int intValue() {
+		var int index;
+		var int intValue;
+		var boolean negative;
+		
+		if ((str[0] = 45) & (string_length > 0)) { 
+			let negative = true;
+			let index = 1;
+		}
+		else {
+			let negative = false;
+			let index = 0;
+		}
+		
+		let intValue = 0;
+		while (index < string_length) {
+			if (str[index] < 58 & str[index] > 47) { 
+				let intValue = (str[index] - 48) + (intValue * 10);
+			}
+			let index = index + 1;
+		}
+		if (negative) {
+			return -intValue;
+		}
+		else {
+			return intValue;
+		}
     }
 
     /** Sets this string to hold a representation of the given value. */
-    method void setInt(int val) {
+    method void setInt(int value) {
+		let string_length = 0;
+		if (value < 0) {
+			let value = -value;
+			do appendChar(45); 
+		}		
+		do setIntHelper(value);
+		return;
     }
-
+	
+	/** Assistance method that deals with Modulo for setInt. */
+	method void setIntHelper(int value) {
+		var int mHelper;
+		var int dHelper;
+		let dHelper = value / 10;
+		let mHelper = value - (dHelper * 10);
+		if (value < 10) {
+			do appendChar(mHelper + 48);
+		}
+		else {
+			do setIntHelper(dHelper);
+			do appendChar(mHelper + 48);
+		}
+		return;
+    }
+	
     /** Returns the new line character. */
     function char newLine() {
+		return 128;
     }
 
     /** Returns the backspace character. */
     function char backSpace() {
+		return 129;
     }
 
     /** Returns the double quote (") character. */
     function char doubleQuote() {
+		return 34;
     }
 }

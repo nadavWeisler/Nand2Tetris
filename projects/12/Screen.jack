@@ -10,34 +10,219 @@
  * the screen is indexed (0,0).
  */
 class Screen {
-
+		
+	static Array screen;
+	static boolean blackPixel;
+	static Array twoToTheList;
+	
     /** Initializes the Screen. */
     function void init() {
+		let blackPixel = true;
+		let screen = 16384;
+		let twoToTheList = Array.new(16);
+		let twoToTheList[0] = 1;
+		let twoToTheList[1] = 2;
+		let twoToTheList[2] = 4;
+		let twoToTheList[3] = 8;
+		let twoToTheList[4] = 16;
+		let twoToTheList[5] = 32;
+		let twoToTheList[6] = 64;
+		let twoToTheList[7] = 128;
+		let twoToTheList[8] = 256;
+		let twoToTheList[9] = 512;
+		let twoToTheList[10] = 1024;
+		let twoToTheList[11] = 2048;
+		let twoToTheList[12] = 4096;
+		let twoToTheList[13] = 8192;
+		let twoToTheList[14] = 16384;
+		let twoToTheList[15] = 32768;
+        return;
     }
 
     /** Erases the entire screen. */
     function void clearScreen() {
+		var int index;
+        let index = 8191;
+		while (~(index < 0)) {
+            let screen[index] = 0;
+            let index = index - 1;
+        }
+        return;
     }
 
     /** Sets the current color, to be used for all subsequent drawXXX commands.
      *  Black is represented by true, white by false. */
     function void setColor(boolean b) {
+		let blackPixel = b;
+        return;
     }
 
     /** Draws the (x,y) pixel, using the current color. */
     function void drawPixel(int x, int y) {
+		var int AddressOfScreen;
+		var int bit;
+		var int word;
+		var int newWord;
+		
+		let bit = twoToThe[(x & 15)];
+        let word = Math.divide(x, 16);
+        let AddressOfScreen = (Math.multiply(y, 32)) + word;
+        
+		if (blackPixel) {
+            let newWord = screen[AddressOfScreen] | bit;
+        }
+        else {
+            let newWord = screen[AddressOfScreen] & ~bit;
+        }
+        let screen[AddressOfScreen] = newWord;
+        return;
     }
 
     /** Draws a line from pixel (x1,y1) to pixel (x2,y2), using the current color. */
     function void drawLine(int x1, int y1, int x2, int y2) {
+		var boolean left;
+		var boolean right;
+		var int number;
+		
+		let left = true;
+		let right = false;
+		
+        if (x1 = x2) {
+            do Screen.vertical(x1, y1, y2);
+        }
+		let number = 0;
+        if (y1 = y2) {
+            do Screen.horizontal(x1, x2, y1);
+        }
+        else {
+            let number = 1;
+			if (y2 > y1) {
+				
+                if (x2 > x1) {
+                    do Screen.upwardLeftOrRight(x1, y1, x2 - x1, y2 - y1, right);
+                }
+                else {
+                    do Screen.upwardLeftOrRight(x1, y1, x1 - x2, y2 - y1, left);
+					let number = 0;
+                }
+            }
+            else {
+                let number = x1;
+                let x1 = x2;
+                let x2 = number;
+                let number = y1;
+                let y1 = y2;
+                let y2 = number;
+
+                if (x2 > x1) {
+                    do Screen.upwardLeftOrRight(x1, y1, x2 - x1, y2 - y1, right);
+                }
+                else {
+                    do Screen.upwardLeftOrRight(x1, y1, x1 - x2, y2 - y1, left);
+                }
+            }
+        }
+        return;
     }
 
     /** Draws a filled rectangle whose top left corner is (x1, y1)
      * and bottom right corner is (x2,y2), using the current color. */
     function void drawRectangle(int x1, int y1, int x2, int y2) {
+		var int size;
+		var int count; 
+        
+		let size = x2-x1;
+		let count = 0;
+		
+        while (~(count > size)) {  
+			do Screen.vertical(x1 + count, y1, y2);
+            let count = count + 1;
+        }
+        return;
     }
 
     /** Draws a filled circle of radius r<=181 around (x,y), using the current color. */
     function void drawCircle(int x, int y, int r) {
+		var int halfOfWidth;
+		var int width;
+        
+		let width = y - r;
+		
+        while (~(width > (r + y))) {
+            let halfOfWidth = Math.sqrt((Math.multiply(r,r)) - Math.multiply(y - width, y - width));
+            
+			do Screen.horizontal(x - halfOfWidth, halfOfWidth + x, width);
+            
+			let width = width + 1;
+        }
+        return;
+    }
+	
+	/** Draw horizontal line. */
+	function void horizontal(int x1, int x2, int y){
+        var int size;
+		var int count;
+        
+        if (x2 < x1) {
+            let count = x1;
+            let x1 = x2;
+            let x2 = count;
+        }
+        
+		let size = x2 - x1;
+        let count = 0;
+		
+		while (~(count > size)) {
+            do Screen.drawPixel(x1 + count, y);
+            let count = count + 1;
+        }
+        return;
+	}
+	
+	/** Draw vertical line. */
+	function void vertical(int x, int y1, int y2){
+        var int size;
+		var int count;
+		if (y2 < y1) {
+            let count = y1;
+            let y1 = y2;
+            let y2 = count;
+        }
+        let size = y2 - y1;
+        let count = 0;
+        while (~(count > size)) {
+            do Screen.drawPixel(x, y1 + count);
+            let count = count + 1;
+        }
+        return;
+    }
+	
+	/** Draw upward left or right line. */
+	function void upwardLeftOrRight(int x, int y, int dx, int dy, boolean left) {
+        var int direction; 
+		var int counter1; 
+		var int counter2;		
+        let direction = 0;
+        let counter1 = 0;
+        let counter2 = 0;		
+        while (~(counter1 > dx) & ~(counter2 > dy)) {
+			
+			if (left) {
+				do Screen.drawPixel(x - counter1, y + counter2);
+			}
+			else {
+				do Screen.drawPixel(x + counter1, y + counter2);
+			}
+            do Screen.drawPixel(x - counter1, y + counter2);
+            if (direction < 0) {
+                let counter1 = counter1 + 1;
+                let direction = direction + dy;
+            }
+            else {
+                let counter2 = counter2 + 1;
+                let direction = direction - dx;
+            }
+        }
+        return;
     }
 }
