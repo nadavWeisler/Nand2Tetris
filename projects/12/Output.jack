@@ -17,7 +17,7 @@
 class Output {
     // Character map for displaying characters
     static Array charMaps;
-    static Array lengthOfRow;
+    static Array rowLength;
     static Array lineUp;
     static Array screen;
     static int row;
@@ -265,9 +265,9 @@ class Output {
     function void initLengthOfRow() {
         var int index;
         let index = 0;
-        let lengthOfRow = Array.new(12);     
+        let rowLength = Array.new(12);     
         while (index < 12) {
-            let lengthOfRow[index] = 0;
+            let rowLength[index] = 0;
             let index = index + 1;
         }
         return;
@@ -276,7 +276,7 @@ class Output {
     /** Advances the cursor to the beginning of the next line. */
     function void println() {
       if (row < 22) {
-          let lengthOfRow[row] = col;
+          let rowLength[row] = col;
           let row = row + 1;
       }
       else {
@@ -297,7 +297,7 @@ class Output {
       if (col = 0) {
           if (row > 0) {
               let row = row - 1;
-              let col = lengthOfRow[row];
+              let col = rowLength[row];
           }
           return;
       }

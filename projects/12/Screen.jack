@@ -12,30 +12,30 @@
 class Screen {
 		
 	static Array screen;
-	static boolean blackPixel;
-	static Array twoToTheList;
+	static boolean blackPx;
+	static Array twoToLst;
 	
     /** Initializes the Screen. */
     function void init() {
-		let blackPixel = true;
+		let blackPx = true;
 		let screen = 16384;
-		let twoToTheList = Array.new(16);
-		let twoToTheList[0] = 1;
-		let twoToTheList[1] = 2;
-		let twoToTheList[2] = 4;
-		let twoToTheList[3] = 8;
-		let twoToTheList[4] = 16;
-		let twoToTheList[5] = 32;
-		let twoToTheList[6] = 64;
-		let twoToTheList[7] = 128;
-		let twoToTheList[8] = 256;
-		let twoToTheList[9] = 512;
-		let twoToTheList[10] = 1024;
-		let twoToTheList[11] = 2048;
-		let twoToTheList[12] = 4096;
-		let twoToTheList[13] = 8192;
-		let twoToTheList[14] = 16384;
-		let twoToTheList[15] = 32768;
+		let twoToLst = Array.new(16);
+		let twoToLst[0] = 1;
+		let twoToLst[1] = 2;
+		let twoToLst[2] = 4;
+		let twoToLst[3] = 8;
+		let twoToLst[4] = 16;
+		let twoToLst[5] = 32;
+		let twoToLst[6] = 64;
+		let twoToLst[7] = 128;
+		let twoToLst[8] = 256;
+		let twoToLst[9] = 512;
+		let twoToLst[10] = 1024;
+		let twoToLst[11] = 2048;
+		let twoToLst[12] = 4096;
+		let twoToLst[13] = 8192;
+		let twoToLst[14] = 16384;
+		let twoToLst[15] = 32768;
         return;
     }
 
@@ -53,7 +53,7 @@ class Screen {
     /** Sets the current color, to be used for all subsequent drawXXX commands.
      *  Black is represented by true, white by false. */
     function void setColor(boolean b) {
-		let blackPixel = b;
+		let blackPx = b;
         return;
     }
 
@@ -68,7 +68,7 @@ class Screen {
         let word = Math.divide(x, 16);
         let AddressOfScreen = (Math.multiply(y, 32)) + word;
         
-		if (blackPixel) {
+		if (blackPx) {
             let newWord = screen[AddressOfScreen] | bit;
         }
         else {
@@ -88,7 +88,7 @@ class Screen {
 		let right = false;
 		
         if (x1 = x2) {
-            do Screen.vertical(x1, y1, y2);
+            do Screen.verticalLine(x1, y1, y2);
         }
 		let number = 0;
         if (y1 = y2) {
@@ -99,10 +99,10 @@ class Screen {
 			if (y2 > y1) {
 				
                 if (x2 > x1) {
-                    do Screen.upwardLeftOrRight(x1, y1, x2 - x1, y2 - y1, right);
+                    do Screen.upLeftOrRight(x1, y1, x2 - x1, y2 - y1, right);
                 }
                 else {
-                    do Screen.upwardLeftOrRight(x1, y1, x1 - x2, y2 - y1, left);
+                    do Screen.upLeftOrRight(x1, y1, x1 - x2, y2 - y1, left);
 					let number = 0;
                 }
             }
@@ -115,10 +115,10 @@ class Screen {
                 let y2 = number;
 
                 if (x2 > x1) {
-                    do Screen.upwardLeftOrRight(x1, y1, x2 - x1, y2 - y1, right);
+                    do Screen.upLeftOrRight(x1, y1, x2 - x1, y2 - y1, right);
                 }
                 else {
-                    do Screen.upwardLeftOrRight(x1, y1, x1 - x2, y2 - y1, left);
+                    do Screen.upLeftOrRight(x1, y1, x1 - x2, y2 - y1, left);
                 }
             }
         }
@@ -135,7 +135,7 @@ class Screen {
 		let count = 0;
 		
         while (~(count > size)) {  
-			do Screen.vertical(x1 + count, y1, y2);
+			do Screen.verticalLine(x1 + count, y1, y2);
             let count = count + 1;
         }
         return;
@@ -180,7 +180,7 @@ class Screen {
 	}
 	
 	/** Draw vertical line. */
-	function void vertical(int x, int y1, int y2){
+	function void verticalLine(int x, int y1, int y2){
         var int size;
 		var int count;
 		if (y2 < y1) {
@@ -198,7 +198,7 @@ class Screen {
     }
 	
 	/** Draw upward left or right line. */
-	function void upwardLeftOrRight(int x, int y, int dx, int dy, boolean left) {
+	function void upLeftOrRight(int x, int y, int dx, int dy, boolean left) {
         var int direction; 
 		var int counter1; 
 		var int counter2;		

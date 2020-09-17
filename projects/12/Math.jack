@@ -25,7 +25,7 @@ class Math {
     }
 
     /** returns true if the bit in the j place of x is 1 */
-    function boolean bit(int num, int index) {
+    function boolean getBit(int num, int index) {
         return ~((num & binArray[index]) = 0);
     }
 
@@ -50,7 +50,7 @@ class Math {
         let sum = 0;
         let i = 0;
         while(i < 16){
-            if(Math.bit(num2, i)) {
+            if(Math.getBit(num2, i)) {
                 let sum = sum + shifted_num1;
             }
             let num1_shift = num1_shift + num1_shift;
